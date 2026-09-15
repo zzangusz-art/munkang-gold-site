@@ -1,0 +1,45 @@
+{
+  "kickoff": "2026-09-15",
+  "weeks": [
+    {"week": 1, "theme": "구축·기술 세팅·자동화 가동", "tasks": [
+      {"title": "킥오프 · 자료 확인(당근·인스타·유튜브·Threads 채널, 견적의뢰서 참고)", "owner": "세느루", "auto_key": null, "done": 1},
+      {"title": "신규 홈페이지 구축(홈·금시세·계산기·매입/판매 안내·제품·가이드·FAQ·예약·블로그·매장소개)", "owner": "세느루", "auto_key": "site_built"},
+      {"title": "관리자 페이지(시세 입력/엑셀/국제시세 자동, 제품·콘텐츠·문의·리포트) 구축", "owner": "세느루", "auto_key": "site_built"},
+      {"title": "기술 세팅: 페이지별 고유 title/description · canonical · sitemap.xml · robots.txt · llms.txt · RSS", "owner": "세느루", "auto_key": "audit_pass", "done": 1},
+      {"title": "구조화데이터: LocalBusiness/JewelryStore · WebSite · FAQPage · Dataset(시세) · Product/Offer(가격·기준시각) · Article · VideoObject · BreadcrumbList", "owner": "세느루", "auto_key": "audit_pass", "done": 1},
+      {"title": "시세 운영 방식 확정(수동 입력 / 엑셀 / 국제시세 자동 계산) 및 첫 시세 입력", "owner": "문강금은", "auto_key": "quote_updated"},
+      {"title": "콘텐츠 자동발행 가동(매일 2건, 09:00 시세 리포트 · 15:00 가이드/제품/동향)", "owner": "세느루", "auto_key": "auto_running", "done": 1},
+      {"title": "인블로그 계정 생성 · Team 플랜 · API 키 발급 · 서브도메인(blog.) CNAME 연결", "owner": "문강금은", "auto_key": "inblog_connected"},
+      {"title": "도메인 확정·Railway 결제 주체 확정 및 계정 준비(사업자번호·대표자·상세주소 전달)", "owner": "문강금은", "auto_key": null},
+      {"title": "베이스라인 측정(전후 스크린샷 · 기술감사 기준선 · ChatGPT/Perplexity 질문 세트)", "owner": "세느루", "auto_key": "baseline_report", "done": 1}
+    ]},
+    {"week": 2, "theme": "오픈·검색엔진 등록·제품 확충", "tasks": [
+      {"title": "도메인 연결 및 사이트 오픈(HTTPS 확인, 임시도메인 noindex 해제)", "owner": "세느루", "auto_key": null},
+      {"title": "구글 서치콘솔·네이버 서치어드바이저 소유확인 + sitemap 제출 + 수집 요청", "owner": "세느루", "auto_key": null},
+      {"title": "네이버 플레이스·구글 비즈니스 프로필에 홈페이지 URL 등록, 인스타·유튜브·Threads·당근 프로필 링크 통일(NAP)", "owner": "문강금은", "auto_key": null},
+      {"title": "제품 10개 이상 소개글 작성(자동발행+수동)", "owner": "세느루", "auto_key": "products_10"},
+      {"title": "콘텐츠 누적 14건 발행", "owner": "세느루", "auto_key": "posts_14"},
+      {"title": "유튜브 쇼츠 5~10편 URL 등록(VideoObject)", "owner": "문강금은", "auto_key": "videos_linked"},
+      {"title": "고객 후기 5건 이상 등록(당근·매장 후기 동의 받아 게재)", "owner": "문강금은", "auto_key": "reviews_5"},
+      {"title": "국제시세 자동조회 정상 동작 확인", "owner": "세느루", "auto_key": "spot_ok"},
+      {"title": "1주차 주간 리포트 검토·전달(전후 스크린샷 포함)", "owner": "세느루", "auto_key": null}
+    ]},
+    {"week": 3, "theme": "콘텐츠 축적·AI 인용 신호", "tasks": [
+      {"title": "콘텐츠 누적 28건 발행 · 가이드 10편 이상", "owner": "세느루", "auto_key": "posts_28"},
+      {"title": "금시세 리포트 4건 이상(매일 발행 확인)", "owner": "세느루", "auto_key": "reports_4"},
+      {"title": "제품 20개 이상 소개글", "owner": "세느루", "auto_key": "products_20"},
+      {"title": "기술 감사 90점 이상 유지", "owner": "세느루", "auto_key": "audit_90"},
+      {"title": "구글·네이버 색인 현황 점검(site: 검색, 서치콘솔 색인 페이지 수)", "owner": "세느루", "auto_key": null},
+      {"title": "인스타·Threads 시세 게시물에 홈페이지 시세 페이지 링크 삽입", "owner": "문강금은", "auto_key": null},
+      {"title": "2주차 주간 리포트 검토·전달", "owner": "세느루", "auto_key": null}
+    ]},
+    {"week": 4, "theme": "실측·월간 종합", "tasks": [
+      {"title": "콘텐츠 누적 50건 발행", "owner": "세느루", "auto_key": "posts_50"},
+      {"title": "ChatGPT·Perplexity·구글 AI 로그아웃 실측(\"종로 금 매입\", \"오늘 금시세 종로\", \"돌반지 가격\", \"문강금은\") 스크린샷", "owner": "세느루", "auto_key": null},
+      {"title": "AI 크롤러 방문 추이·검색 유입 분석", "owner": "세느루", "auto_key": null},
+      {"title": "3주차 주간 리포트 검토·전달", "owner": "세느루", "auto_key": null},
+      {"title": "월간 종합 리포트 생성·전달(전후 비교·지표·다음 달 운영 제안)", "owner": "세느루", "auto_key": "monthly_report"},
+      {"title": "운영 인수인계(시세 입력·문의 처리·콘텐츠 검토 루틴) 및 월 운영 계약 안내", "owner": "세느루", "auto_key": null}
+    ]}
+  ]
+}

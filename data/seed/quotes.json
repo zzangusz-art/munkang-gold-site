@@ -1,0 +1,49 @@
+{
+  "note": "초기값 — 2026-09-15 당근 업체 프로필 사진의 매장 가격판(골드바 최종구매가 1돈 734,000·주물금 724,000·실버바 1kg 3N 297만원)과 국제시세(XAU $4,266/oz·USDKRW 1,347) 환산을 참고한 추정치. 매입가는 판매가 대비 약 -8%로 가정. 실제 매장 고시가로 관리자에서 반드시 갱신할 것.",
+  "spot": {
+    "spot_xau_usd": "4266.2",
+    "spot_xag_usd": "62.95",
+    "spot_xpt_usd": "1753",
+    "spot_usdkrw": "1347.2",
+    "spot_updated_at": "2026-09-15 18:08",
+    "spot_source": "gold-api.com+open.er-api.com(seed)"
+  },
+  "rows": [
+    {
+      "code": "au999",
+      "buy": 676000,
+      "sell": 734000,
+      "note": "순금 24K · 골드바 최종구매가 기준"
+    },
+    {
+      "code": "au916",
+      "buy": 619000,
+      "sell": null,
+      "note": "22K"
+    },
+    {
+      "code": "au750",
+      "buy": 507000,
+      "sell": null,
+      "note": "18K"
+    },
+    {
+      "code": "au585",
+      "buy": 395000,
+      "sell": null,
+      "note": "14K"
+    },
+    {
+      "code": "pt999",
+      "buy": 270000,
+      "sell": null,
+      "note": "백금"
+    },
+    {
+      "code": "ag999",
+      "buy": 10200,
+      "sell": 11100,
+      "note": "은 · 실버바 1kg 297만원(3N) 기준"
+    }
+  ]
+}
