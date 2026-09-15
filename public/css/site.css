@@ -27,7 +27,7 @@ p{margin:0 0 1em}
 /* header */
 .header{position:sticky;top:0;z-index:50;background:#3e3938;box-shadow:0 1px 0 rgba(255,255,255,.06);transition:box-shadow .2s}
 .header.scrolled{box-shadow:0 8px 28px rgba(0,0,0,.35)}
-.topbar{background:#151311;color:#d9d2c2;font-size:13px}.topbar .wrap{display:flex;justify-content:space-between;align-items:center;height:34px}.tb-right a{color:var(--gold-l);margin-left:16px}
+.topbar{background:#151311;color:#d9d2c2;font-size:13px}.topbar .wrap{display:flex;justify-content:space-between;align-items:center;height:34px}.tb-right a{color:var(--gold-l);margin-left:16px}.tb-short{display:none}
 .header-inner{display:flex;align-items:center;gap:20px;height:78px}
 .logo img{height:56px;width:auto}
 .nav{flex:1;display:flex;justify-content:center}.nav-list{list-style:none;margin:0;padding:0;display:flex;gap:2px}
@@ -142,7 +142,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,162,39,.35);b
 .hero-grid{grid-template-columns:1fr;padding:40px 16px 28px}.hb-price{font-size:36px}.calc-grid,.calc-page .calc-grid,.why-grid,.contact-grid,.grid2,.spot-card,.pdetail{grid-template-columns:1fr}.side-col{position:static}.stat-row{grid-template-columns:repeat(3,1fr)}.post-grid,.video-grid,.rv-grid,.svc-grid{grid-template-columns:1fr 1fr}.pgrid{grid-template-columns:1fr 1fr}.steps-row{grid-template-columns:1fr 1fr}.section{padding:48px 0}.footer-grid{grid-template-columns:1fr}.quote-bar .qb-label small{display:none}}
 @media (max-width:600px){.post-grid,.video-grid,.rv-grid,.svc-grid,.pgrid,.steps-row,.stat-cards{grid-template-columns:1fr}.inq-form .row{grid-template-columns:1fr}.hero h1{font-size:30px}.hb-main{grid-template-columns:1fr}.hb-spark{text-align:left}.stat-row{grid-template-columns:1fr 1fr}.fc-apply{padding:10px 14px;font-size:13px}.topbar .wrap{font-size:12px}.cta-inner{flex-direction:column;align-items:flex-start}.wrap{padding:0 16px}.calc-result b{font-size:30px}.calc-input input{font-size:20px}.qb-more{display:none}}
 /* 우측 상담 채널 버튼(오픈채팅·전화·카톡ID·예약) */
-.side-cta{position:fixed;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:45;align-items:flex-end}
+.side-cta{position:fixed;right:16px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:45;align-items:flex-end}
 .sc-btn{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 12px 8px 8px;box-shadow:0 10px 26px rgba(28,26,23,.16);color:var(--ink);cursor:pointer;font-family:inherit;text-align:left;transition:.2s;min-width:196px}
 .sc-btn:hover{transform:translateX(-4px);text-decoration:none;box-shadow:0 14px 30px rgba(28,26,23,.22)}
 .sc-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none;background:var(--bg-2)}
@@ -156,3 +156,27 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,162,39,.35);b
 .greeting{background:linear-gradient(135deg,#1c1813,#2a2419);color:#e8e2d3;border-radius:var(--r);padding:32px 34px;margin:0 0 28px;font-family:var(--serif);font-size:17px;line-height:1.9}.greeting p{margin:0 0 1em}.greeting p:last-child{margin:0}.greeting b{color:var(--gold-l);font-weight:700}.greeting .sig{font-family:var(--font);font-size:14px;color:#a39c8c;margin-top:16px}.greeting .badges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.greeting .badges span{border:1px solid var(--gold);color:var(--gold-l);border-radius:999px;padding:4px 12px;font-size:13px;font-family:var(--font);font-weight:700}
 @media (max-width:900px){.side-cta{display:none}.mobile-bar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.08)}.mobile-bar a,.mobile-bar button{display:block;text-align:center;padding:12px 4px;font-size:13px;font-weight:700;color:var(--ink);background:none;border:0;font-family:inherit}.mobile-bar a:first-child{background:var(--kakao)}.mobile-bar a:last-child{background:var(--char);color:#fff}body{padding-bottom:52px}.kw-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.kw-grid{grid-template-columns:1fr}.greeting{padding:24px 20px;font-size:15px}}
+
+/* ── 모바일 UI 정돈 ── */
+@media (max-width:900px){
+  .topbar .wrap{height:32px;justify-content:center;white-space:nowrap;overflow:hidden}.tb-long,.tb-right{display:none}.tb-short{display:inline;font-size:12px}
+  .hero-inner,.hero-grid{padding:32px 16px 24px;gap:22px}.hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-actions .btn{padding:13px 10px;font-size:15px}.trust{gap:10px 14px;font-size:13px}
+  .hero-board{padding:16px 14px;border-radius:16px}.hb-price{font-size:38px}.hb-table{font-size:13px}.hb-table th{white-space:nowrap;padding:6px 2px}.hb-table td{padding:6px 2px}
+  .calc-card{padding:18px 16px}.calc-input{gap:8px}.calc-input input{min-width:0;font-size:20px;padding:9px 12px}.calc-input .unit-toggle{flex:none}.calc-input .ut{padding:6px 10px}.calc-input input{max-width:calc(100% - 96px)}.calc-result b{font-size:30px}.calc-actions .btn{flex:1;padding:12px 10px;font-size:14px}
+  .svc-grid{grid-template-columns:1fr 1fr;gap:10px}.svc{padding:16px 14px}.svc-ic{font-size:24px;margin-bottom:8px}.svc h3{font-size:15px}.svc p{font-size:13px}.svc .more{font-size:12px}
+  .steps-row{grid-template-columns:1fr;gap:8px}.step{display:grid;grid-template-columns:36px 1fr;column-gap:12px;align-items:center;padding:12px 14px}.step .st-n{margin:0;grid-row:1/3}.step h3{font-size:15px;margin:0}.step p{font-size:12px}
+  .pgrid{grid-template-columns:1fr 1fr;gap:10px}.pc-img{aspect-ratio:1/1}.pc-glyph{font-size:30px}.pc-w{font-size:11px;bottom:6px;right:8px}.badge{font-size:10px;top:6px;left:6px}.pc-body{padding:10px 12px 12px}.pcard h3{font-size:14px}.pc-price b{font-size:16px}.pc-basis{font-size:11px}
+  .pd-img{max-height:260px;aspect-ratio:auto;height:240px}.pd-img .pc-glyph{font-size:56px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}.tabs::-webkit-scrollbar{display:none}.tab{white-space:nowrap;flex:none;padding:8px 14px;font-size:13px}
+  .stat-row{grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:10px 12px}.stat b{font-size:18px}.stat span{font-size:11px}
+  .market-controls .btn{padding:10px 14px;font-size:14px}.market-controls .btn-ghost-dark{display:none}
+  .price-table{min-width:0;font-size:14px}.price-table th,.price-table td{padding:10px 8px}.price-table th:nth-child(2),.price-table td:nth-child(2),.market-table th:nth-child(6),.market-table td:nth-child(6){display:none}.price-table .num b{font-size:15px}.chg small{display:none}
+  .table-wrap{border-radius:10px}.bluf{font-size:15px;padding:12px 14px}.page-head{padding:28px 0 20px}.page-head h1{font-size:26px}.page-head h1 small{display:block;margin:6px 0 0}
+  .sec-head{margin-bottom:18px}.section{padding:40px 0}.kw-card{padding:12px 14px}.kw-card b{font-size:14px}.kw-card span{font-size:12px}
+  .stat-cards{grid-template-columns:1fr 1fr;gap:10px}.stat-card{padding:18px 12px}.stat-card b{font-size:20px}
+  .post-grid,.rv-grid,.video-grid{grid-template-columns:1fr;gap:12px}.post-card a{padding:16px}.inq-form{padding:18px 16px}.faq-item summary{padding:14px 40px 14px 16px}.faq-item summary h3{font-size:15px}
+  .cta-band{padding:36px 0}.cta-actions{width:100%}.cta-actions .btn{flex:1;padding:12px 8px;font-size:14px}
+  .footer{padding:36px 0 84px}.f-kw{display:none}
+  .greeting{font-size:15px;padding:22px 18px}
+}
+@media (max-width:600px){.pgrid{grid-template-columns:1fr 1fr}.svc-grid{grid-template-columns:1fr 1fr}.stat-cards{grid-template-columns:1fr 1fr}.steps-row{grid-template-columns:1fr}}
