@@ -29,7 +29,7 @@ router.get('/live', async (req, res) => {
   if (settings.cfg('quote_source') === 'live') await live.refresh();
   const st = quotes.stats(); const sp = quotes.spot();
   res.set('Cache-Control', 'no-store');
-  res.json({ mode: settings.cfg('quote_source'), updatedText: st.updatedText, updated: st.lastUpdated ? isoFromTs(st.lastUpdated) : null, official: live.status().officialAt, items: st.rows.map(r => ({ code: r.code, name: r.name, buy: r.buy, sell: r.sell, diff: r.diff, pct: r.pct, buyG: r.buyG })), intl: sp.available ? { xau: sp.xau, usdkrw: sp.usdkrw } : null });
+  res.json({ mode: settings.cfg('quote_source'), updatedText: st.updatedText, updated: st.lastUpdated ? isoFromTs(st.lastUpdated) : null, official: live.status().officialAt, error: live.status().error || undefined, items: st.rows.map(r => ({ code: r.code, name: r.name, buy: r.buy, sell: r.sell, diff: r.diff, pct: r.pct, buyG: r.buyG })), intl: sp.available ? { xau: sp.xau, usdkrw: sp.usdkrw } : null });
 });
 router.get('/calc', (req, res) => {
   const r = quotes.calc({ code: String(req.query.code || 'au999'), weight: Number(req.query.weight), unit: String(req.query.unit || 'g') });
