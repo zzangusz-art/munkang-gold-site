@@ -41,20 +41,25 @@ if errorlevel 1 (
 )
 railway status >nul 2>&1
 if errorlevel 1 (
-  echo 이 폴더가 Railway 프로젝트에 연결돼 있지 않습니다. 프로젝트를 선택하거나 새로 만듭니다...
+  echo 이 폴더가 Railway 프로젝트에 연결돼 있지 않습니다. 새 프로젝트를 만들거나 기존 프로젝트를 선택하세요...
   railway init
   if errorlevel 1 (echo [오류] 프로젝트 연결 실패 & pause & exit /b 1)
+  echo.
+  echo [4/4] 첫 배포 ^(서비스 생성, 빌드 2~4분^)
+  railway up --detach
+  if errorlevel 1 (echo [오류] 배포 실패. 위 메시지를 확인하세요. & pause & exit /b 1)
   echo 영구 볼륨 /data 추가 ^(없으면 재배포마다 DB 초기화^)
   railway volume add --mount-path /data
   for /f "delims=" %%i in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')"') do set JWT=%%i
   railway variables --set "DATA_DIR=/data" --set "JWT_SECRET=!JWT!" --set "ADMIN_ID=admin" --set "ADMIN_PW=munkang1234!" --set "NODE_ENV=production" --set "SITE_URL=https://www.munkanggold.com" >nul
-  echo 기본 환경변수 설정 완료 ^(관리자 admin / munkang1234! - 첫 로그인 후 변경^)
+  echo 기본 환경변수 설정 완료 ^(관리자 admin / munkang1234! - 첫 로그인 후 변경^). 변수 적용을 위해 자동 재배포됩니다.
+  railway domain
+) else (
+  echo.
+  echo [4/4] Railway 배포 시작 ^(빌드 2~4분^)
+  railway up --detach
+  if errorlevel 1 (echo [오류] 배포 실패. 위 메시지를 확인하세요. & pause & exit /b 1)
 )
-echo.
-
-echo [4/4] Railway 배포 시작 ^(빌드 2~4분^)
-railway up --detach
-if errorlevel 1 (echo [오류] 배포 실패. 위 메시지를 확인하세요. & pause & exit /b 1)
 echo.
 for /f "delims=" %%d in ('railway domain 2^>nul') do set DOMAIN=%%d
 echo 배포가 시작됐습니다. 진행 상황: railway logs  /  대시보드: railway open
