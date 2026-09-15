@@ -23,6 +23,14 @@ router.get('/prices/:code/history', (req, res) => {
   res.json({ code: q.code, name: q.name, unit: '원/돈', history: quotes.history(q.id, days) });
 });
 router.get('/spot', (req, res) => { res.set('Cache-Control', 'public, max-age=300'); res.json({ ...quotes.spot(), history: require('../lib/spot').history(30) }); });
+// 실시간 시세 — 홈 시세판·티커가 60초마다 호출. 서버는 최소 60초 간격으로만 원본을 다시 수집한다.
+router.get('/live', async (req, res) => {
+  const live = require('../lib/live');
+  if (settings.cfg('quote_source') === 'live') await live.refresh();
+  const st = quotes.stats(); const sp = quotes.spot();
+  res.set('Cache-Control', 'no-store');
+  res.json({ mode: settings.cfg('quote_source'), updatedText: st.updatedText, updated: st.lastUpdated ? isoFromTs(st.lastUpdated) : null, official: live.status().officialAt, items: st.rows.map(r => ({ code: r.code, name: r.name, buy: r.buy, sell: r.sell, diff: r.diff, pct: r.pct, buyG: r.buyG })), intl: sp.available ? { xau: sp.xau, usdkrw: sp.usdkrw } : null });
+});
 router.get('/calc', (req, res) => {
   const r = quotes.calc({ code: String(req.query.code || 'au999'), weight: Number(req.query.weight), unit: String(req.query.unit || 'g') });
   if (!r) return res.status(400).json({ error: '순도 코드와 중량(양수)을 확인하세요.' });

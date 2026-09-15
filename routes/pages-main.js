@@ -8,6 +8,7 @@ const { page, faqLd } = require('../lib/layout');
 const settings = require('../lib/settings');
 const quotes = require('../lib/quotes');
 const spotLib = require('../lib/spot');
+const youtubeLib = require('../lib/youtube');
 const { CAT_LABEL } = require('../lib/content/templates');
 const { esc, attr, fmtNum, kstDate, isoFromTs, fmtKoDate, truncate, stripHtml } = require('../lib/util');
 
@@ -38,7 +39,7 @@ function postCard(p) {
 // 상단 시세 바(모든 내부 페이지 공통) — AI/검색 크롤러가 어느 페이지에서든 당일 시세를 읽게 함
 function quoteBar() {
   const st = quotes.stats(); if (!st.gold) return '';
-  const items = st.rows.map(r => `<a class="qb-item" href="/price/${r.metal}"><b>${esc(r.name)}</b><span>${fmtNum(r.buy)}</span>${chg(r.diff, r.pct)}</a>`).join('');
+  const items = st.rows.map(r => `<a class="qb-item" data-code="${attr(r.code)}" href="/price/${r.metal}"><b>${esc(r.name)}</b><span>${fmtNum(r.buy)}</span>${chg(r.diff, r.pct)}</a>`).join('');
   return `<div class="quote-bar" aria-label="오늘의 시세 요약"><div class="wrap qb-inner"><span class="qb-label">오늘의 매입가 <small>원/돈 · ${esc(st.updatedText)}</small></span><div class="qb-track">${items}</div><a class="qb-more" href="/price">시세표 →</a></div></div>`;
 }
 function datasetLd(rows, updated) {
@@ -47,7 +48,7 @@ function datasetLd(rows, updated) {
 }
 function productCard(p) {
   const pr = quotes.productPrice(p);
-  return `<a class="pcard reveal" href="/products/${attr(p.slug)}" data-cat="${attr(p.category)}" data-name="${attr(p.name)}" data-price="${pr.price || 0}" data-weight="${p.weight_g || 0}"><div class="pc-img ${attr(p.metal)}">${p.image ? `<img src="${attr(p.image)}" alt="${attr(p.name)}" loading="lazy">` : `<span class="pc-glyph">${p.metal === 'silver' ? 'Ag' : 'Au'}</span><span class="pc-w">${p.weight_g}g</span>`}${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}</div><div class="pc-body"><span class="pc-cat">${CAT_LABEL[p.category] || ''}</span><h3>${esc(p.name)}</h3><p class="pc-price">${pr.price ? `<b>${fmtNum(pr.price)}원</b>` : '<b>시세 문의</b>'}</p><p class="pc-basis">${pr.basis ? `${esc(pr.basis)} 시세 기준 · 부가세 별도` : p.price_fixed ? '고정가' : '당일 시세 연동'}</p></div></a>`;
+  return `<a class="pcard reveal" href="/products/${attr(p.slug)}" data-cat="${attr(p.category)}" data-name="${attr(p.name)}" data-price="${pr.price || 0}" data-weight="${p.weight_g || 0}"><div class="pc-img ${attr(p.metal)}">${p.image ? `<img src="${attr(p.image)}" alt="${attr(p.name)}" loading="lazy">` : `<span class="pc-glyph">${p.metal === 'silver' ? 'Ag' : 'Au'}</span><span class="pc-w">${p.weight_g}g</span>`}${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}</div><div class="pc-body"><span class="pc-cat">${CAT_LABEL[p.category] || ''}</span><h3>${esc(p.name)}</h3><p class="pc-price">${pr.price ? `<b>${fmtNum(pr.price)}원</b>` : '<b>시세 문의</b>'}</p><p class="pc-basis">${pr.basis ? `${esc(pr.basis)} 시세 기준` : p.price_fixed ? '고정가' : '당일 시세 연동'}</p></div></a>`;
 }
 
 // ── 홈 ──
@@ -59,35 +60,39 @@ router.get('/', (req, res) => {
   const featured = db.prepare("SELECT * FROM products WHERE status='published' AND featured=1 ORDER BY sort, id LIMIT 8").all();
   const hist = g ? quotes.history(g.id, 30) : [];
   const faqs = FAQ.slice(0, 6);
+  // 계산기 옆 유튜브 롤링 — 채널 RSS로 자동 동기화된 최신 영상
+  const rollVids = youtubeLib.latest(10);
+  const ytRoll = rollVids.length ? `<div class="yt-roll" id="ytRoll"><div class="yr-head"><b>문강금은 유튜브</b><span>매일 올리는 금·은 시세 영상</span><a href="${attr(s.youtube)}" target="_blank" rel="noopener">채널 보기</a></div><div class="yr-view"><div class="yr-track">${rollVids.map(v => `<button type="button" class="yr-item" data-id="${attr(v.youtube_id)}" aria-label="${attr(v.title)} 재생"><img src="https://i.ytimg.com/vi/${attr(v.youtube_id)}/oardefault.jpg" alt="" loading="lazy" width="180" height="320"><span class="yr-play" aria-hidden="true"></span><span class="yr-t">${esc(v.title)}</span></button>`).join('')}</div></div><div class="yr-nav"><button type="button" class="yr-prev" aria-label="이전 영상">&lsaquo;</button><button type="button" class="yr-next" aria-label="다음 영상">&rsaquo;</button></div></div>` : '';
+  const ytModal = rollVids.length ? '<div class="yt-modal" id="ytModal" hidden><div class="yt-modal-box"><button type="button" class="yt-close" aria-label="닫기">&times;</button><div class="yt-frame"></div></div></div>' : '';
   const tickerHtml = st.rows.map(r => `<span class="tk"><b>${esc(r.name)}</b> 매입 ${fmtNum(r.buy)}${r.sell ? ` · 판매 ${fmtNum(r.sell)}` : ''} ${chg(r.diff, r.pct)}</span>`).join('') + (sp.available ? `<span class="tk"><b>국제 금시세</b> $${fmtNum(Math.round(sp.xau))}/oz · 환율 ${fmtNum(Math.round(sp.usdkrw))}원</span>` : '');
   const body = `
 <section class="hero">
-  <div class="hero-bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="shine"></span></div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow">종로3가역 11번 출구 앞 · 종로 금거래소 · 금·은 매입·판매 전문</p>
-      <h1>오늘 금 한 돈, <span class="hl">${g ? fmtNum(g.buy) + '원' : '시세 확인'}</span>에<br>사드립니다</h1>
-      <p class="lead">문강금은은 순금·18K·14K·백금·은 시세를 매일 공개하고, 30분 이내 정밀 감정 후 현장에서 현금을 드리는 종로3가 금은방입니다. 골드바·실버바·돌반지는 당일 시세로 구매하실 수 있습니다.</p>
-      <div class="hero-actions"><a class="btn btn-gold lg" href="/calculator">내 금 얼마? 계산하기</a><a class="btn btn-ghost lg" href="/apply">매입·구매 예약</a></div>
-      <ul class="trust"><li>✓ 감정 30분 이내</li><li>✓ 현장 현금 지급</li><li>✓ 출장 매입</li><li>✓ 매일 ${esc(s.hours_open)}–${esc(s.hours_close)}</li></ul>
+      <p class="eyebrow">종로3가역 11번 출구 앞 금·은 매입·판매</p>
+      <h1>오늘 금 한 돈,<br><span class="hl">${g ? fmtNum(g.buy) + '원' : '당일 시세'}</span>에 사드립니다</h1>
+      <p class="lead">문강금은은 순금·18K·14K·백금·은 시세를 매일 공개하고, 30분 이내 정밀 감정 후 현장에서 현금을 드리는 종로3가 금은방입니다. 골드바, 실버바, 돌반지는 당일 시세로 구매하실 수 있습니다.</p>
+      <div class="hero-actions"><a class="btn btn-gold lg" href="/calculator">매입가 계산하기</a><a class="btn btn-ghost lg" href="/apply">매입·구매 예약</a></div>
+      <ul class="trust"><li>감정 30분 이내</li><li>현장 현금 지급</li><li>출장 매입</li><li>매일 ${esc(s.hours_open)}–${esc(s.hours_close)}</li></ul>
     </div>
     <div class="hero-board reveal" id="board">
-      <div class="hb-head"><span>오늘의 시세 <small>원/돈(3.75g)</small></span><span class="hb-time">${esc(st.updatedText)} 갱신</span></div>
+      <div class="hb-head"><span>오늘의 시세 <small>원/돈(3.75g)</small></span><span class="hb-time"><i class="live-dot" aria-hidden="true"></i>실시간 <span id="liveTime">${esc(st.updatedText)}</span></span></div>
       <div class="hb-main">
-        <div class="hb-gold"><span class="hb-name">순금 24K 매입가</span><b class="hb-price" data-count="${g ? g.buy : 0}">0</b><span class="hb-sub">${g ? chg(g.diff, g.pct) : ''} · 1g ${g ? fmtNum(g.buyG) : '-'}원</span></div>
+        <div class="hb-gold"><span class="hb-name">순금 24K 매입가</span><b class="hb-price" data-count="${g ? g.buy : 0}">0</b><span class="hb-sub"><span id="hbChg">${g ? chg(g.diff, g.pct) : ''}</span> · 1g ${g ? fmtNum(g.buyG) : '-'}원</span></div>
         <div class="hb-spark">${sparkline(hist, 260, 64)}<span class="note">최근 30일 매입가 추이 (30일 ${st.m30 > 0 ? '+' : ''}${st.m30}%)</span></div>
       </div>
-      <table class="hb-table"><tbody>${st.rows.filter(r => r.code !== 'au999').map(r => `<tr><th>${esc(r.name)}</th><td class="num">${fmtNum(r.buy)}</td><td class="num">${r.sell ? fmtNum(r.sell) : '<span class="muted">—</span>'}</td><td class="num">${chg(r.diff, r.pct)}</td></tr>`).join('')}</tbody><tfoot><tr><th></th><td class="num">매입</td><td class="num">판매</td><td class="num">전일비</td></tr></tfoot></table>
+      <table class="hb-table"><tbody>${st.rows.filter(r => r.code !== 'au999').map(r => `<tr data-code="${attr(r.code)}"><th>${esc(r.name)}</th><td class="num">${fmtNum(r.buy)}</td><td class="num">${r.sell ? fmtNum(r.sell) : '<span class="muted">—</span>'}</td><td class="num">${chg(r.diff, r.pct)}</td></tr>`).join('')}</tbody><tfoot><tr><th></th><td class="num">매입</td><td class="num">판매</td><td class="num">전일비</td></tr></tfoot></table>
       <div class="hb-foot"><span class="unit-toggle" role="group" aria-label="단위"><button class="ut active" data-unit="don">돈</button><button class="ut" data-unit="g">g</button></span><a href="/price">전체 시세표 →</a></div>
     </div>
   </div>
-  <div class="ticker" aria-label="오늘의 시세 흐름"><div class="ticker-track">${tickerHtml}${tickerHtml}</div></div>
+  <div class="ticker" aria-label="오늘의 시세 흐름"><div class="ticker-track" id="tickerTrack">${tickerHtml}${tickerHtml}</div></div>
 </section>
 
 <section class="section calc-sec" id="calc">
   <div class="wrap calc-grid">
-    <div class="reveal"><p class="eyebrow">매입가 계산기</p><h2>내 금붙이, 지금 팔면 얼마 받을 수 있나요?</h2><p class="sub">순도와 중량만 고르면 오늘 시세로 예상 매입가가 바로 나옵니다. 실제 금액은 감정 결과(순도·중량·부속품 제외)에 따라 확정됩니다.</p>
-      <ul class="checks"><li>18K·14K는 함량(75%·58.5%)만큼 자동 반영</li><li>돈(3.75g)·g 단위 모두 지원</li><li>결과를 카카오톡으로 보내 매입 예약</li></ul></div>
+    <div class="calc-side reveal"><h2>오늘 시세로 계산하는 예상 매입가</h2><p class="sub">순도와 중량을 고르면 지금 시세로 예상 매입가가 계산됩니다. 실제 금액은 감정 결과(순도, 중량, 부속품 제외)에 따라 확정됩니다.</p>
+      <ul class="checks"><li>18K·14K는 함량(75%, 58.5%)만큼 자동 반영</li><li>돈(3.75g)과 g 단위 모두 입력 가능</li><li>계산한 금액 그대로 매입 예약</li></ul>
+      ${ytRoll}</div>
     <div class="calc-card reveal" id="calc-widget" data-quotes='${attr(JSON.stringify(st.rows.map(r => ({ code: r.code, name: r.name, purity: r.purity, buy: r.buy, metal: r.metal }))))}'>
       <div class="calc-row"><label>순도</label><div class="chips" id="calcPurity">${st.rows.map((r, i) => `<button class="chip${i === 0 ? ' active' : ''}" data-code="${attr(r.code)}">${esc(r.name)}</button>`).join('')}</div></div>
       <div class="calc-row"><label for="calcW">중량</label><div class="calc-input"><input id="calcW" type="number" inputmode="decimal" min="0" step="0.01" value="3.75"><span class="unit-toggle" role="group"><button class="ut active" data-u="g">g</button><button class="ut" data-u="don">돈</button></span></div><input id="calcRange" type="range" min="0" max="100" step="0.25" value="3.75" aria-label="중량 슬라이더"></div>
@@ -96,13 +101,14 @@ router.get('/', (req, res) => {
       <p class="note">${esc(st.updatedText)} 시세 기준 · ${esc(s.quote_note)}</p>
     </div>
   </div>
+  ${ytModal}
 </section>
 
 <section class="section services">
   <div class="wrap">
-    <div class="sec-head center"><p class="eyebrow">무엇을 도와드릴까요</p><h2>문강금은은 어떤 서비스를 제공하나요?</h2><p class="sub">금·은을 파실 때는 정밀 감정과 현장 현금, 사실 때는 당일 시세 연동 가격. 종로3가 매장에서 한 번에 처리합니다.</p></div>
+    <div class="sec-head center"><h2>문강금은에서 도와드리는 일</h2><p class="sub">금·은을 파실 때는 정밀 감정과 현장 현금, 사실 때는 당일 시세 연동 가격. 종로3가 매장에서 한 번에 처리합니다.</p></div>
     <div class="svc-grid">
-      ${[['💰', '금·은 매입', '순금·18K·14K·백금·은 제품을 순도·중량 기준으로 매입. 형태 무관, 끊어진 것도 OK.', '/sell'], ['🔍', '정밀 감정', '고객이 보는 앞에서 저울·XRF·시금석으로 30분 이내 감정. 감정만 받아도 됩니다.', '/guide/appraisal'], ['🚗', '출장 매입', '수량이 많거나 거동이 불편하면 서울·수도권 방문 매입. 매장과 동일 기준.', '/sell#visit'], ['🪙', '골드바·실버바 판매', '1g부터 100g까지 당일 시세 연동 가격, 보증서 제공. 되팔 때도 당일 매입.', '/buy'], ['🍼', '돌반지·순금 선물', '돌반지·돌팔찌·금수저·행운의 열쇠. 각인·케이스 포장 가능.', '/products?category=baby'], ['💍', '리세팅·투자 상담', '헌 금으로 새 반지 만들기, 골드바 적립 상담.', '/apply?kind=consult']]
+      ${[['01', '금·은 매입', '순금, 18K, 14K, 백금, 은 제품을 순도와 중량 기준으로 매입합니다. 끊어지거나 찌그러진 것도 괜찮습니다.', '/sell'], ['02', '정밀 감정', '고객이 보는 앞에서 저울과 XRF 분석기로 30분 안에 감정합니다. 감정만 받으셔도 됩니다.', '/guide/appraisal'], ['03', '출장 매입', '수량이 많거나 방문이 어려우시면 서울과 수도권으로 찾아가 매장과 같은 기준으로 매입합니다.', '/sell#visit'], ['04', '골드바·실버바 판매', '골드바는 1g부터 100g까지 당일 시세로 판매하고 보증서를 드립니다. 되파실 때도 당일 시세로 매입합니다.', '/buy'], ['05', '돌반지·순금 선물', '돌반지, 돌팔찌, 금수저, 행운의 열쇠를 준비해 두었습니다. 각인과 케이스 포장도 해드립니다.', '/products?category=baby'], ['06', '리세팅·투자 상담', '쓰지 않는 금으로 새 반지를 만들거나 골드바를 나눠 모으는 방법을 상담해 드립니다.', '/apply?kind=consult']]
         .map(([ic, t, d, h]) => `<a class="svc reveal" href="${h}"><span class="svc-ic">${ic}</span><h3>${t}</h3><p>${d}</p><span class="more">자세히 →</span></a>`).join('')}
     </div>
   </div>
@@ -110,14 +116,14 @@ router.get('/', (req, res) => {
 
 <section class="section process">
   <div class="wrap">
-    <div class="sec-head center"><p class="eyebrow">매입 절차</p><h2>금을 팔면 어떤 순서로 진행되나요?</h2></div>
-    <ol class="steps-row">${[['방문·예약', '매장 방문 또는 출장 예약. 신분증만 지참'], ['중량 측정', '고객 앞에서 전자저울로 순중량 측정(부속품 제외)'], ['순도 감정', 'XRF·시금석으로 순도 확인, 결과 함께 확인'], ['금액 제시', '당일 시세 × 순도 × 중량. 마음에 안 들면 안 팔아도 됨'], ['현금 지급', '동의 즉시 현장 현금 또는 계좌이체']].map(([t, d], i) => `<li class="step reveal"><span class="st-n">${i + 1}</span><h3>${t}</h3><p>${d}</p></li>`).join('')}</ol>
+    <div class="sec-head center"><h2>금을 팔 때는 이렇게 진행됩니다</h2></div>
+    <ol class="steps-row">${[['방문·예약', '매장에 오시거나 출장을 예약하세요. 신분증만 챙겨 오시면 됩니다.'], ['중량 측정', '고객 앞에서 전자저울로 순중량을 잽니다. 보석과 부속품은 뺍니다.'], ['순도 감정', 'XRF 분석기와 시금석으로 순도를 확인하고 결과를 함께 봅니다.'], ['금액 안내', '당일 시세와 순도, 중량으로 금액을 알려드립니다. 마음에 들지 않으면 팔지 않으셔도 됩니다.'], ['현금 지급', '동의하시면 그 자리에서 현금이나 계좌이체로 드립니다.']].map(([t, d], i) => `<li class="step reveal"><span class="st-n">${i + 1}</span><h3>${t}</h3><p>${d}</p></li>`).join('')}</ol>
   </div>
 </section>
 
 <section class="section products-hl">
   <div class="wrap">
-    <div class="sec-head"><div><p class="eyebrow">제품</p><h2>골드바·돌반지, 오늘 시세로 얼마인가요?</h2></div><a class="link" href="/products">전체 제품 →</a></div>
+    <div class="sec-head"><div><h2>오늘 시세로 본 제품 가격</h2></div><a class="link" href="/products">전체 제품 →</a></div>
     <div class="pgrid">${featured.map(productCard).join('')}</div>
     <p class="note">가격은 ${esc(st.updatedText)} 고시 시세에 연동되어 자동 계산되며 결제 시점 매장 고시가가 최종 적용됩니다. 실물 귀금속 구매 시 부가세 10% 별도.</p>
   </div>
@@ -126,10 +132,9 @@ router.get('/', (req, res) => {
 <section class="section why">
   <div class="wrap why-grid">
     <div class="reveal">
-      <p class="eyebrow">왜 문강금은인가</p>
-      <h2>다른 금은방과 무엇이 다른가요?</h2>
-      <p>시세를 숨기지 않습니다. 매입가와 판매가를 홈페이지에 매일 공개하고, 감정은 고객이 보는 앞에서 진행하며, 제시 금액이 마음에 들지 않으면 팔지 않으셔도 됩니다. 종로3가 귀금속 거리에서 "신뢰"를 원칙으로 검증된 제품과 합리적인 가격을 지킵니다.</p>
-      <ul class="checks"><li>매입가·판매가 매일 공개(돈·g 병기)</li><li>고객 참관 감정, 30분 이내</li><li>현장 현금 지급 · 출장 매입</li><li>자사 판매 골드바 당일 시세 재매입</li></ul>
+      <h2>시세를 숨기지 않는 금은방</h2>
+      <p>매입가와 판매가를 홈페이지에 매일 공개하고, 감정은 고객이 보는 앞에서 진행하며, 제시 금액이 마음에 들지 않으면 팔지 않으셔도 됩니다. 종로3가 귀금속 거리에서 "신뢰"를 원칙으로 검증된 제품과 합리적인 가격을 지킵니다.</p>
+      <ul class="checks"><li>매입가와 판매가를 매일 공개</li><li>고객이 보는 앞에서 30분 안에 감정</li><li>현장 현금 지급, 출장 매입</li><li>문강금은에서 산 골드바는 당일 시세로 재매입</li></ul>
       <a class="btn btn-dark" href="/about">매장 소개 보기</a>
     </div>
     <div class="stat-cards reveal">
@@ -138,30 +143,29 @@ router.get('/', (req, res) => {
   </div>
 </section>
 
-${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><p class="eyebrow">고객 후기</p><h2>실제로 거래한 분들은 어떻게 말하나요?</h2></div><a class="link" href="/reviews">후기 더 보기 →</a></div><div class="rv-grid">${reviews.map(r => `<blockquote class="rv reveal"><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(r.text)}</p><footer>${esc(r.name)} · ${esc(r.kind || '')}</footer></blockquote>`).join('')}</div></div></section>` : ''}
+${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><h2>고객 후기</h2></div><a class="link" href="/reviews">후기 더 보기 →</a></div><div class="rv-grid">${reviews.map(r => `<blockquote class="rv reveal"><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(r.text)}</p><footer>${esc(r.name)} · ${esc(r.kind || '')}</footer></blockquote>`).join('')}</div></div></section>` : ''}
 
 <section class="section posts">
   <div class="wrap">
-    <div class="sec-head"><div><p class="eyebrow">금 정보</p><h2>오늘 금값, 어떻게 읽어야 하나요?</h2></div><a class="link" href="/blog">전체 글 →</a></div>
+    <div class="sec-head"><div><h2>금시세 리포트와 금 정보</h2></div><a class="link" href="/blog">전체 글 →</a></div>
     <div class="post-grid">${posts.map(postCard).join('') || '<p class="note">첫 글이 곧 발행됩니다.</p>'}</div>
   </div>
 </section>
 
-${videos.length ? `<section class="section videos"><div class="wrap"><div class="sec-head"><div><p class="eyebrow">유튜브 · 쇼츠</p><h2>매장에서 직접 보여드리는 감정·시세 이야기</h2></div><a class="link" href="${attr(s.youtube)}" target="_blank" rel="noopener">채널 보기 →</a></div><div class="video-grid">${videos.map(v => `<div class="video reveal"><div class="yt" data-id="${attr(v.youtube_id)}"><img src="https://i.ytimg.com/vi/${attr(v.youtube_id)}/hqdefault.jpg" alt="${attr(v.title)}" loading="lazy" width="480" height="360"><button class="yt-play" aria-label="${attr(v.title)} 재생">▶</button></div><h3>${esc(v.title)}</h3></div>`).join('')}</div></div></section>` : ''}
 
 <section class="section kw-sec"><div class="wrap">
-  <div class="sec-head center"><p class="eyebrow">종로3가에서 찾으시나요</p><h2>종로 금거래소·금매입·골드바·돌반지·금은방을 찾는다면</h2><p class="sub">종로3가역 11번 출구 앞 문강금은은 종로 금매입, 종로 골드바, 종로 돌반지, 종로 금반지·금팔찌·금목걸이까지 한 매장에서 시세 공개·감정·현금 지급으로 처리합니다.</p></div>
+  <div class="sec-head center"><h2>종로에서 금거래소, 금은방을 찾으신다면</h2><p class="sub">종로3가역 11번 출구 앞 문강금은은 종로 금매입, 종로 골드바, 종로 돌반지, 종로 금반지·금팔찌·금목걸이까지 한 매장에서 시세 공개·감정·현금 지급으로 처리합니다.</p></div>
   <div class="kw-grid">${[['종로금매입', '종로 금매입', '순금·18K·14K·은 형태 무관 매입, 30분 감정, 현장 현금'], ['종로금거래소', '종로 금거래소', '매입가·판매가 매일 공개, 국제 시세 환산 참고'], ['종로골드바', '종로 골드바', '1g~100g 당일 시세 연동, 보증서, 당일 재매입'], ['종로돌반지', '종로 돌반지', '반돈·한돈 순금 돌반지, 각인·케이스'], ['종로금은방', '종로 금은방', '종로3가역 11번 출구 앞, 연중무휴 10~20시'], ['종로금반지', '종로 금반지·팔찌·목걸이', '순금 주얼리 시세 연동 가격, 리세팅']].map(([k, t, d]) => `<a class="kw-card reveal" href="/search/${encodeURIComponent(k)}"><b>${t}</b><span>${d}</span></a>`).join('')}</div>
 </div></section>
 
 <section class="section faq-sec"><div class="wrap">
-  <div class="sec-head center"><p class="eyebrow">FAQ</p><h2>금 팔기·사기, 이것이 궁금합니다</h2></div>
+  <div class="sec-head center"><h2>자주 묻는 질문</h2></div>
   ${faqHtml(faqs, '')}
   <p class="center"><a class="link" href="/faq">FAQ 전체 보기 →</a></p>
 </div></section>
 
 <section class="section contact-sec" id="contact"><div class="wrap contact-grid">
-  <div class="reveal"><p class="eyebrow">매입·구매 예약</p><h2>1분이면 예약이 끝납니다</h2><p>품목과 대략적인 중량만 남겨 주세요. 영업시간 내 바로 연락드려 시세와 방문·출장 일정을 안내합니다. 급하시면 ${esc(s.phone)}으로 전화 주세요.</p>
+  <div class="reveal"><h2>매입·구매 예약</h2><p>품목과 대략적인 중량만 남겨 주세요. 영업시간 내 바로 연락드려 시세와 방문·출장 일정을 안내합니다. 급하시면 ${esc(s.phone)}으로 전화 주세요.</p>
   <ul class="checks"><li>매입·구매·출장·상담 모두 무료</li><li>감정만 받아도 됩니다</li><li>카카오톡으로 사진 상담 가능</li></ul>
   <div class="map-mini"><iframe title="문강금은 위치" src="https://www.google.com/maps?q=${encodeURIComponent('종로3가역 11번 출구')}&output=embed&hl=ko" width="100%" height="220" loading="lazy" referrerpolicy="no-referrer-when-downgrade" style="border:0;border-radius:14px"></iframe></div></div>
   <form class="inq-form reveal" id="inqForm" method="post" action="/api/inquiry" data-ajax>
@@ -209,15 +213,15 @@ function pricePage(req, res, metal) {
   const h1 = metal ? meta.h1 : '오늘의 금·은·백금 시세표 — 매입가·판매가';
   const intro = metal ? meta.intro : '순금(24K)·22K·18K·14K·백금·은의 1돈(3.75g) 기준 매입가와 골드바·실버바 판매가입니다. 문강금은 종로3가 매장 고시가로 매일 갱신되며, 실거래가는 감정 결과에 따라 확정됩니다.';
   const body = `
-<section class="page-head price-head"><div class="wrap"><p class="eyebrow">오늘의 시세 · ${esc(st.updatedText)} 갱신</p><h1>${h1}</h1><p class="bluf">${intro} ${g ? `현재 ${esc(g.name)} 매입가는 <strong>${fmtNum(g.buy)}원/돈(${fmtNum(g.buyG)}원/g)</strong>, 전일 대비 ${g.diff > 0 ? '+' : ''}${fmtNum(g.diff)}원(${g.pct}%)입니다.` : ''}</p><div class="tabs">${tabs}</div></div></section>
+<section class="page-head price-head"><div class="wrap"><p class="eyebrow">실시간 시세 · ${esc(st.updatedText)} 기준</p><h1>${h1}</h1><p class="bluf">${intro} ${g ? `현재 ${esc(g.name)} 매입가는 <strong>${fmtNum(g.buy)}원/돈(${fmtNum(g.buyG)}원/g)</strong>, 전일 대비 ${g.diff > 0 ? '+' : ''}${fmtNum(g.diff)}원(${g.pct}%)입니다.` : ''}</p><div class="tabs">${tabs}</div></div></section>
 <section class="section market">
   <div class="wrap">
-    <div class="stat-row">${[[g ? fmtNum(g.buy) : '-', `${g ? esc(g.name) : ''} 매입(원/돈)`], [g && g.sell ? fmtNum(g.sell) : '—', '판매(원/돈)'], [g ? (g.diff > 0 ? '+' : '') + fmtNum(g.diff) : '-', '전일 대비', g ? (g.diff > 0 ? 'up' : g.diff < 0 ? 'down' : '') : ''], [(st.m30 > 0 ? '+' : '') + st.m30 + '%', '순금 30일 변동', st.m30 > 0 ? 'up' : st.m30 < 0 ? 'down' : ''], [sp.available ? '$' + fmtNum(Math.round(sp.xau)) : '-', '국제 금시세(oz)']].map(([v, l, c]) => `<div class="stat ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-    <div class="market-controls"><span class="unit-toggle" role="group" aria-label="단위"><button class="ut active" data-unit="don">1돈(3.75g)</button><button class="ut" data-unit="g">1g</button></span><span class="sp"></span><a class="btn btn-gold" href="/calculator">매입가 계산기</a><a class="btn btn-ghost-dark" href="/api/prices" target="_blank" rel="noopener">JSON</a></div>
+    <div class="stat-row">${[[g ? fmtNum(g.buy) : '-', `${g ? esc(g.name) : ''} 매입가`], [g && g.sell ? fmtNum(g.sell) : '—', '판매가'], [g ? (g.diff > 0 ? '+' : '') + fmtNum(g.diff) : '-', '전일 대비', g ? (g.diff > 0 ? 'up' : g.diff < 0 ? 'down' : '') : ''], [(st.m30 > 0 ? '+' : '') + st.m30 + '%', '순금 30일 변동', st.m30 > 0 ? 'up' : st.m30 < 0 ? 'down' : ''], [sp.available ? '$' + fmtNum(Math.round(sp.xau)) : '-', '국제 금시세(온스)']].map(([v, l, c]) => `<div class="stat ${c || ''}"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="market-controls"><span class="unit-toggle" role="group" aria-label="단위"><button class="ut active" data-unit="don">1돈(3.75g)</button><button class="ut" data-unit="g">1g</button></span><span class="sp"></span><a class="btn btn-gold" href="/calculator">매입가 계산기</a></div>
     <div class="table-wrap"><table class="price-table market-table" id="mkTable"><thead><tr><th>종목</th><th>순도</th><th class="num">매입가</th><th class="num">판매가</th><th class="num">전일 대비</th><th>90일 추이</th></tr></thead><tbody>
       ${rows.map(r => `<tr data-code="${attr(r.code)}" data-name="${attr(r.name)}" data-buy="${r.buy || ''}" data-sell="${r.sell || ''}"><td><b>${esc(r.name)}</b><br><small class="muted">${esc(r.label)}</small></td><td>${esc(r.purity || '')}</td><td class="num"><b class="pv" data-don="${r.buy || ''}">${fmtNum(r.buy)}</b><small class="unit-lbl">원/돈</small></td><td class="num">${r.sell ? `<span class="pv" data-don="${r.sell}">${fmtNum(r.sell)}</span><small class="unit-lbl">원/돈</small>` : '<span class="muted">문의</span>'}</td><td class="num">${chg(r.diff, r.pct)}</td><td><button class="spark-btn" data-hist="${attr(r.code)}" aria-label="${attr(r.name)} 90일 추이 보기">${sparkline(quotes.history(r.id, 90), 110, 30)}</button></td></tr>`).join('')}
     </tbody></table></div>
-    <p class="note">${esc(settings.cfg('quote_note'))} · 종목을 누르면 90일 그래프가 열립니다.</p>
+    <p class="note">${esc(settings.cfg('quote_note'))} 종목을 누르면 90일 그래프가 열립니다.</p>
     <div class="modal" id="histModal" hidden><div class="modal-box"><button class="modal-close" aria-label="닫기">×</button><h3 id="histTitle"></h3><div id="histChart"></div><p class="note" id="histNote"></p></div></div>
     ${sp.available ? `<div class="spot-card reveal"><div><h2>국제 시세로 환산하면 얼마인가요?</h2><p>국제 금시세 <b>$${fmtNum(Math.round(sp.xau * 100) / 100)}/oz</b>${sp.xag ? ` · 은 $${sp.xag}/oz` : ''}${sp.xpt ? ` · 백금 $${fmtNum(Math.round(sp.xpt))}/oz` : ''}, 환율 <b>${fmtNum(Math.round(sp.usdkrw * 10) / 10)}원/$</b> (${esc(sp.updated_at)} 조회) → 순금 환산 <b>${fmtNum(sp.gold_krw_g)}원/g · ${fmtNum(sp.gold_krw_don)}원/돈</b>${sp.silver_krw_g ? `, 은 ${fmtNum(sp.silver_krw_g)}원/g` : ''}. 매장 매입가는 환산가에서 정제·유통 비용을 뺀 값이고 판매가는 더한 값입니다.</p><p class="note">환산 공식: 달러/온스 ÷ 31.1035 × 환율. 출처 ${esc(sp.source)}. 참고용이며 거래 기준가는 매장 고시가입니다.</p></div><div class="spot-chart">${sparkline(spHist.map(h => ({ buy: h.xau })), 320, 90)}<span class="note">국제 금시세 30일(USD/oz)</span></div></div>` : ''}
   </div>

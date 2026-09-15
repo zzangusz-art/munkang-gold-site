@@ -56,7 +56,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 // ── 시세 ──
-router.get('/quotes', (req, res) => res.json({ rows: quotes.list(), base: quotes.BASE, spot: quotes.spot(), spotHistory: spot.history(30), updates: db.prepare('SELECT * FROM quote_updates ORDER BY id DESC LIMIT 30').all(), settings: { auto_quote_from_spot: settings.cfg('auto_quote_from_spot'), spot_buy_spread_pct: settings.cfg('spot_buy_spread_pct'), spot_sell_spread_pct: settings.cfg('spot_sell_spread_pct'), spot_fetch: settings.cfg('spot_fetch'), margin_pct: settings.cfg('margin_pct'), quote_note: settings.cfg('quote_note') } }));
+router.get('/quotes', (req, res) => res.json({ rows: quotes.list(), base: quotes.BASE, spot: quotes.spot(), spotHistory: spot.history(30), updates: db.prepare('SELECT * FROM quote_updates ORDER BY id DESC LIMIT 30').all(), live: require('../lib/live').status(), settings: { quote_source: settings.cfg('quote_source'), live_interval_min: settings.cfg('live_interval_min'), live_buy_adj_pct: settings.cfg('live_buy_adj_pct'), live_sell_adj_pct: settings.cfg('live_sell_adj_pct'), auto_quote_from_spot: settings.cfg('auto_quote_from_spot'), spot_buy_spread_pct: settings.cfg('spot_buy_spread_pct'), spot_sell_spread_pct: settings.cfg('spot_sell_spread_pct'), spot_fetch: settings.cfg('spot_fetch'), margin_pct: settings.cfg('margin_pct'), quote_note: settings.cfg('quote_note') } }));
 router.post('/quotes', (req, res) => {
   // body: { rows: [{code, buy, sell, note}] } 또는 단건 {code, name, metal, purity, buy, sell}
   const rows = Array.isArray(req.body?.rows) ? req.body.rows : [req.body || {}];
@@ -78,9 +78,11 @@ router.post('/quotes/upload', upload.single('file'), (req, res) => {
   try { fs.writeFileSync(path.join(DATA_DIR, 'uploads', `${kstDate()}-${Date.now()}-${fname.replace(/[^\w.가-힣-]/g, '_')}`), req.file.buffer); } catch (_) { /* no-op */ }
   res.json({ ok: true, rows: n, errors });
 });
+router.post('/quotes/live/refresh', async (req, res) => { const r = await require('../lib/live').refresh({ force: true, by: req.admin.login_id }); if (!r.ok) return res.status(502).json({ error: r.error || '시세 수집 실패' }); res.json({ ok: true, changed: r.changed, officialAt: r.officialAt, rows: quotes.list() }); });
+router.post('/videos/sync', async (req, res) => { const r = await require('../lib/youtube').sync(); if (!r.ok) return res.status(502).json({ error: r.error || '동기화 실패' }); res.json(r); });
 router.post('/quotes/spot/refresh', async (req, res) => { try { const r = await spot.refresh(); if (!r.ok && !r.skipped) return res.status(502).json({ error: r.error, partial: r.partial }); res.json({ ok: true, spot: quotes.spot(), fetched: r }); } catch (e) { res.status(500).json({ error: e.message }); } });
 router.post('/quotes/spot/apply', (req, res) => { const n = quotes.applySpotToQuotes(req.admin.login_id); if (!n) return res.status(400).json({ error: '국제 시세가 없습니다. 먼저 조회하세요.' }); res.json({ ok: true, rows: n, quotes: quotes.list() }); });
-router.post('/quotes/settings', (req, res) => { const b = req.body || {}; for (const k of ['auto_quote_from_spot', 'spot_buy_spread_pct', 'spot_sell_spread_pct', 'spot_fetch', 'margin_pct', 'labor_default', 'quote_note']) if (k in b) setSetting(k, b[k]); res.json({ ok: true }); });
+router.post('/quotes/settings', (req, res) => { const b = req.body || {}; for (const k of ['quote_source', 'live_interval_min', 'live_buy_adj_pct', 'live_sell_adj_pct', 'auto_quote_from_spot', 'spot_buy_spread_pct', 'spot_sell_spread_pct', 'spot_fetch', 'margin_pct', 'labor_default', 'quote_note']) if (k in b) setSetting(k, b[k]); res.json({ ok: true }); });
 
 // ── 제품 ──
 router.get('/products', (req, res) => res.json(db.prepare("SELECT id,slug,category,name,metal,purity,weight_g,quote_code,labor,margin_pct,price_fixed,badge,featured,sort,status,ai_generated,updated_at,(body_html IS NOT NULL AND body_html<>'') has_body FROM products ORDER BY sort, id").all().map(p => ({ ...p, price: quotes.productPrice(p).price }))));

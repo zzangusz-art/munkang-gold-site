@@ -48,7 +48,7 @@
     w.addEventListener('input', () => { if (range) range.value = w.value; render(); });
     $$('#calcPresets .chip').forEach(c => c.addEventListener('click', () => { const g = Number(c.dataset.g); w.value = unit === 'don' ? Math.round(g / DON * 100) / 100 : g; if (range) range.value = w.value; render(); }));
     if (table) $$('tbody tr', table).forEach(tr => tr.addEventListener('click', () => { code = tr.dataset.code; $$('#calcPurity .chip').forEach(x => x.classList.toggle('active', x.dataset.code === code)); render(); }));
-    const copy = $('#calcCopy'); copy && copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`문강금은 예상 매입가 ${total.textContent} (${sub.textContent}) ${location.origin}/calculator`); copy.textContent = '복사됨 ✓'; setTimeout(() => copy.textContent = '결과 복사', 1500); } catch (_) { /* no-op */ } });
+    const copy = $('#calcCopy'); copy && copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(`문강금은 예상 매입가 ${total.textContent} (${sub.textContent}) ${location.origin}/calculator`); copy.textContent = '복사됨'; setTimeout(() => copy.textContent = '결과 복사', 1500); } catch (_) { /* no-op */ } });
     render();
   }
 
@@ -94,8 +94,60 @@
   // 카카오톡 ID 복사(우측 버튼·모바일 바)
   $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     const v = b.dataset.copy; let ok = false; try { await navigator.clipboard.writeText(v); ok = true; } catch (_) { const t = document.createElement('textarea'); t.value = v; document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (_) { /* no-op */ } t.remove(); }
-    const small = b.querySelector('small'); if (small) { const o = small.textContent; small.textContent = ok ? '복사됨 ✓ 카카오톡 → 친구추가 → ID 검색' : 'ID: ' + v; b.classList.add('copied'); setTimeout(() => { small.textContent = o; b.classList.remove('copied'); }, 3500); } else if (!ok) alert('카카오톡 ID: ' + v);
+    const small = b.querySelector('small'); if (small) { const o = small.textContent; small.textContent = ok ? '복사됨. 카카오톡 친구추가에서 ID로 검색하세요' : 'ID: ' + v; b.classList.add('copied'); setTimeout(() => { small.textContent = o; b.classList.remove('copied'); }, 3500); } else if (!ok) alert('카카오톡 ID: ' + v);
   }));
+
+  // 실시간 시세 반영(홈 시세판·티커·상단 시세 바·시세표) — 60초마다, 탭이 보일 때만
+  const tickerTrack = $('#tickerTrack'); const mkTable = $('#mkTable');
+  if ($('#board') || tickerTrack || mkTable || $('.qb-item[data-code]')) {
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const chgHtml = (d, p) => d > 0 ? `<span class="chg up">▲ ${fmt(d)} <small>(+${p}%)</small></span>` : d < 0 ? `<span class="chg down">▼ ${fmt(Math.abs(d))} <small>(${p}%)</small></span>` : '<span class="chg flat">보합</span>';
+    const unitNow = () => { const b = $('.unit-toggle [data-unit].active'); return b ? b.dataset.unit : 'don'; };
+    const flash = (el) => { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); };
+    const setDon = (el, v) => { if (!el || !v) return; const prev = Number(el.dataset.don || String(el.textContent).replace(/[^\d]/g, '') * (unitNow() === 'g' ? DON : 1)); el.dataset.don = v; el.textContent = fmt(unitNow() === 'g' ? v / DON : v); if (Math.abs(prev - v) > DON) flash(el); };
+    const pull = async () => {
+      if (document.hidden) return;
+      try {
+        const r = await fetch('/api/live', { cache: 'no-store' }); if (!r.ok) return;
+        const j = await r.json(); const by = Object.fromEntries(j.items.map(x => [x.code, x]));
+        const t = $('#liveTime'); if (t) t.textContent = j.updatedText;
+        const g = by.au999; const hp = $('.hb-price');
+        if (g && hp && Number(hp.dataset.count) !== g.buy) { hp.dataset.count = g.buy; hp.textContent = fmt(g.buy); flash(hp); }
+        const hc = $('#hbChg'); if (g && hc) hc.innerHTML = chgHtml(g.diff, g.pct);
+        $$('.hb-table tr[data-code]').forEach(tr => { const q = by[tr.dataset.code]; if (!q) return; const tds = $$('td', tr); setDon(tds[0], q.buy); setDon(tds[1], q.sell); if (tds[2]) tds[2].innerHTML = chgHtml(q.diff, q.pct); });
+        if (mkTable) $$('tbody tr[data-code]', mkTable).forEach(tr => { const q = by[tr.dataset.code]; if (!q) return; const pv = $$('.pv', tr); setDon(pv[0], q.buy); setDon(pv[1], q.sell); const c = $('.chg', tr); if (c) c.outerHTML = chgHtml(q.diff, q.pct); });
+        $$('.qb-item[data-code]').forEach(a => { const q = by[a.dataset.code]; if (!q) return; const sp = $('span', a); if (sp && sp.textContent !== fmt(q.buy)) { sp.textContent = fmt(q.buy); flash(sp); } const c = $('.chg', a); if (c) c.outerHTML = chgHtml(q.diff, q.pct); });
+        if (tickerTrack) { const html = j.items.map(q => `<span class="tk"><b>${esc(q.name)}</b> 매입 ${fmt(q.buy)}${q.sell ? ` · 판매 ${fmt(q.sell)}` : ''} ${chgHtml(q.diff, q.pct)}</span>`).join('') + (j.intl ? `<span class="tk"><b>국제 금시세</b> $${fmt(j.intl.xau)}/oz · 환율 ${fmt(j.intl.usdkrw)}원</span>` : ''); tickerTrack.innerHTML = html + html; }
+      } catch (_) { /* 다음 주기에 재시도 */ }
+    };
+    setInterval(pull, 60000); setTimeout(pull, 1500);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
+  }
+
+  // 유튜브 롤링(홈 계산기 옆) — 3.5초마다 한 칸, 마우스를 올리면 멈춤, 누르면 팝업 재생
+  const roll = $('#ytRoll'); const ytModal = $('#ytModal');
+  if (roll && ytModal) {
+    const track = $('.yr-track', roll); const view = $('.yr-view', roll); const items = $$('.yr-item', roll); let idx = 0; let timer = null;
+    $$('img', roll).forEach(img => { const fb = () => { if (img.dataset.fb) return; img.dataset.fb = '1'; img.src = img.src.replace('oardefault', 'hqdefault'); }; img.addEventListener('error', fb); if (img.complete && !img.naturalWidth) fb(); });
+    const move = () => { if (!items.length) return; const gap = parseFloat(getComputedStyle(track).columnGap) || 0; const w = items[0].getBoundingClientRect().width + gap; const per = Math.max(1, Math.round((view.clientWidth + gap) / w)); const max = Math.max(0, items.length - per); if (idx < 0) idx = max; if (idx > max) idx = 0; track.style.transform = `translateX(${-idx * w}px)`; };
+    const stop = () => { clearInterval(timer); timer = null; };
+    const play = () => { stop(); if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => { if (!document.hidden && ytModal.hidden) { idx++; move(); } }, 3500); };
+    $('.yr-next', roll).addEventListener('click', () => { idx++; move(); play(); });
+    $('.yr-prev', roll).addEventListener('click', () => { idx--; move(); play(); });
+    view.addEventListener('mouseenter', stop); view.addEventListener('mouseleave', play);
+    window.addEventListener('resize', move);
+    const frame = $('.yt-frame', ytModal);
+    const close = () => { ytModal.hidden = true; frame.replaceChildren(); play(); };
+    items.forEach(b => b.addEventListener('click', () => {
+      stop(); const f = document.createElement('iframe');
+      f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.id)}?autoplay=1&rel=0&playsinline=1`; f.title = b.getAttribute('aria-label') || 'YouTube'; f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+      frame.replaceChildren(f); ytModal.hidden = false;
+    }));
+    $('.yt-close', ytModal).addEventListener('click', close);
+    ytModal.addEventListener('click', (e) => { if (e.target === ytModal) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !ytModal.hidden) close(); });
+    move(); play();
+  }
 
   // 예약 폼 URL 파라미터 프리필
   const params = new URLSearchParams(location.search);

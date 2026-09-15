@@ -21,6 +21,9 @@ const { seedIfEmpty } = require('./scripts/seed');
 const { page } = layout;
 
 seedIfEmpty();
+// 글 제목·슬로건의 " — " 정리(멱등) — 카드·목록에서 대시 나열로 읽히지 않게
+db.prepare("UPDATE posts SET title=REPLACE(REPLACE(title, ' — 가격', ' 가격'), ' — ', ', ') WHERE title LIKE '% — %'").run();
+db.prepare("UPDATE settings SET value=REPLACE(value, ' — ', '. ') WHERE key='slogan' AND value LIKE '% — %'").run();
 
 const app = express();
 app.set('trust proxy', 1);
