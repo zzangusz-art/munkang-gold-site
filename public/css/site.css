@@ -141,14 +141,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,162,39,.35);b
 @media (max-width:900px){.nav,.header-cta{display:none}.burger{display:flex}.header-inner{height:64px;justify-content:space-between}.logo img{height:42px}.topbar .tb-right a:nth-child(3){display:none}
 .hero-grid{grid-template-columns:1fr;padding:40px 16px 28px}.hb-price{font-size:36px}.calc-grid,.calc-page .calc-grid,.why-grid,.contact-grid,.grid2,.spot-card,.pdetail{grid-template-columns:1fr}.side-col{position:static}.stat-row{grid-template-columns:repeat(3,1fr)}.post-grid,.video-grid,.rv-grid,.svc-grid{grid-template-columns:1fr 1fr}.pgrid{grid-template-columns:1fr 1fr}.steps-row{grid-template-columns:1fr 1fr}.section{padding:48px 0}.footer-grid{grid-template-columns:1fr}.quote-bar .qb-label small{display:none}}
 @media (max-width:600px){.post-grid,.video-grid,.rv-grid,.svc-grid,.pgrid,.steps-row,.stat-cards{grid-template-columns:1fr}.inq-form .row{grid-template-columns:1fr}.hero h1{font-size:30px}.hb-main{grid-template-columns:1fr}.hb-spark{text-align:left}.stat-row{grid-template-columns:1fr 1fr}.fc-apply{padding:10px 14px;font-size:13px}.topbar .wrap{font-size:12px}.cta-inner{flex-direction:column;align-items:flex-start}.wrap{padding:0 16px}.calc-result b{font-size:30px}.calc-input input{font-size:20px}.qb-more{display:none}}
-/* 우측 상담 채널 버튼(오픈채팅·전화·카톡ID·예약) */
-.side-cta{position:fixed;right:16px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:45;align-items:flex-end}
-.sc-btn{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 12px 8px 8px;box-shadow:0 10px 26px rgba(28,26,23,.16);color:var(--ink);cursor:pointer;font-family:inherit;text-align:left;transition:.2s;min-width:196px}
-.sc-btn:hover{transform:translateX(-4px);text-decoration:none;box-shadow:0 14px 30px rgba(28,26,23,.22)}
-.sc-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none;background:var(--bg-2)}
-.sc-open .sc-ic{background:var(--kakao)}.sc-call .sc-ic{background:var(--gold)}.sc-id .sc-ic{background:#fff3c4}.sc-apply .sc-ic{background:var(--char);color:#fff}
-.sc-t{display:flex;flex-direction:column;line-height:1.2}.sc-t b{font-size:13px}.sc-t small{font-size:11px;color:var(--muted)}
-.side-cta .fc-top{align-self:flex-end;margin-top:4px}
+/* 우측 하단 상담 채널 버튼(웹: 아이콘만, 마우스 오버 시 라벨 툴팁) */
+.side-cta{position:fixed;right:16px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:45;align-items:flex-end}
+.sc-btn{position:relative;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#fff;border:1px solid var(--line);padding:0;box-shadow:0 10px 26px rgba(28,26,23,.18);color:var(--ink);cursor:pointer;font-family:inherit;transition:.2s}
+.sc-btn:hover{transform:translateY(-2px);text-decoration:none;box-shadow:0 14px 30px rgba(28,26,23,.26)}
+.sc-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:22px}
+.sc-open,.sc-open .sc-ic{background:var(--kakao)}.sc-call,.sc-call .sc-ic{background:var(--gold)}.sc-id,.sc-id .sc-ic{background:#fff3c4}.sc-apply,.sc-apply .sc-ic{background:var(--char);color:#fff}
+.sc-t{position:absolute;right:62px;top:50%;transform:translateY(-50%) translateX(6px);display:flex;flex-direction:column;line-height:1.2;background:#1c1a17;color:#fff;padding:8px 12px;border-radius:10px;white-space:nowrap;opacity:0;visibility:hidden;transition:.18s;pointer-events:none;text-align:left}
+.sc-t::after{content:"";position:absolute;right:-6px;top:50%;transform:translateY(-50%);border:6px solid transparent;border-right:0;border-left-color:#1c1a17}
+.sc-t b{font-size:13px}.sc-t small{font-size:11px;color:#cfc7b4}
+.sc-btn:hover .sc-t,.sc-btn:focus-visible .sc-t,.sc-btn.copied .sc-t{opacity:1;visibility:visible;transform:translateY(-50%)}
+.side-cta .fc-top{align-self:flex-end;margin-top:2px}
 .sc-btn.copied .sc-t small{color:#1a8f3c;font-weight:700}
 .mobile-bar{display:none}
 .f-kw{font-size:12px;color:#8f8878;line-height:1.9}.f-kw a{color:#a39c8c}
