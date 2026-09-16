@@ -196,13 +196,37 @@ def panel(im, w, h, top_bias=0.5):
     return canvas
 
 
+def photo_on_wall(im, w, h, scale=0.6):
+    """사진을 배경(벽 톤)과 같은 캔버스 위에 축소해 올린다 — 경계가 눈에 띄지 않게."""
+    tone = im.crop((int(im.width * 0.02), int(im.height * 0.05), int(im.width * 0.16), int(im.height * 0.35))).resize((1, 1), Image.BOX).getpixel((0, 0))
+    canvas = Image.new('RGB', (w, h), tone)
+    tw = int(w * scale); th = max(1, int(im.height * tw / im.width))
+    if th > h * 0.9:
+        th = int(h * 0.9); tw = max(1, int(im.width * th / im.height))
+    ph = im.resize((tw, th), Image.LANCZOS)
+    # 사진 가장자리만 살짝 풀어 캔버스와 이어 붙인다(벽 톤이 같아 경계가 보이지 않는다)
+    feather = max(16, int(min(tw, th) * 0.05))
+    mask = Image.new('L', (tw, th), 255)
+    ramp = Image.new('L', (feather, 1))
+    for i in range(feather):
+        ramp.putpixel((i, 0), int(255 * (i / max(1, feather - 1))))
+    side = ramp.resize((feather, th), Image.BILINEAR)
+    mask.paste(side, (0, 0)); mask.paste(side.transpose(Image.FLIP_LEFT_RIGHT), (tw - feather, 0))
+    band = ramp.rotate(90, expand=True).resize((tw, feather), Image.BILINEAR)
+    for box, strip in (((0, 0), band), ((0, th - feather), band.transpose(Image.FLIP_TOP_BOTTOM))):
+        region = mask.crop((box[0], box[1], box[0] + tw, box[1] + feather))
+        mask.paste(ImageChops.multiply(region, strip), box)
+    canvas.paste(ph, ((w - tw) // 2, (h - th) // 2), mask)
+    return canvas
+
+
 def hero_desktop(src):
     """데스크톱 히어로 왼쪽 패널용 — 간판이 화면 왼쪽 절반을 채운다(글자는 오른쪽 어두운 면에 올라감)."""
     w, h = 1200, 1500  # 왼쪽 패널이 세로로 길다
     im = cover(grade(src), w, h, focus=0.2) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.88)
-    return grain(vignette(im, 8 if LIGHT else 26), 4 if LIGHT else 6)
+    return im if LIGHT else grain(vignette(im, 26))
 
 
 def hero_mobile(src):
@@ -211,7 +235,7 @@ def hero_mobile(src):
     im = cover(grade(src), w, h, focus=0.22) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.9)
-    return grain(vignette(im, 6 if LIGHT else 20), 4 if LIGHT else 6)
+    return im if LIGHT else grain(vignette(im, 20))
 
 
 def og_image(src):
