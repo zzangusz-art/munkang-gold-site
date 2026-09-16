@@ -239,7 +239,7 @@ h1,h2,h3{text-wrap:balance}p,li,dd{text-wrap:pretty}
 .footer-grid>*{min-width:0}.f-social{display:flex;flex-wrap:wrap;gap:6px 14px}
 
 /* 매장 실사 배너 — 히어로 배경(왼쪽은 글자가 읽히도록 어둡게 덮는다) */
-.hero{background:linear-gradient(90deg,#151311 0%,rgba(21,19,17,.95) 32%,rgba(21,19,17,.8) 55%,rgba(21,19,17,.62) 78%,rgba(21,19,17,.55) 100%),var(--hero-img,url("/img/hero.jpg")) center right/cover no-repeat,linear-gradient(180deg,#1a1713,#151311)}
+.hero{background:linear-gradient(90deg,#151311 0%,rgba(21,19,17,.95) 32%,rgba(21,19,17,.8) 55%,rgba(21,19,17,.62) 78%,rgba(21,19,17,.55) 100%),var(--hero-img,url("/img/hero.jpg")) left center/cover no-repeat,linear-gradient(180deg,#1a1713,#151311)}
 @media (max-width:900px){.hero{background:linear-gradient(180deg,rgba(21,19,17,.9) 0%,rgba(21,19,17,.74) 38%,rgba(21,19,17,.9) 100%),var(--hero-img-m,url("/img/hero-mobile.jpg")) center top/cover no-repeat,#151311}}
 
 /* 소개 페이지 매장 실사 */
@@ -249,3 +249,33 @@ h1,h2,h3{text-wrap:balance}p,li,dd{text-wrap:pretty}
 
 /* 시세판을 어두운 유리처럼 — 뒤 배너 사진이 숫자와 겹쳐 읽히지 않게 */
 .hero-board{background:rgba(18,16,14,.72);border-color:rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+
+.hero-main .hb-table th,.hero-main .hb-table td{padding-top:7px;padding-bottom:7px}
+/* 히어로 재구성 — 웹: 왼쪽 간판 패널 + 오른쪽 내용 / 모바일: 간판을 먼저 보여주고 스크롤하면 내용이 올라온다 */
+.hero{background:linear-gradient(180deg,#1a1713 0%,var(--char) 55%,#151311 100%)}
+.hero-grid{max-width:none;grid-template-columns:.95fr 1.15fr;gap:0;align-items:stretch;padding:0}
+.hero-visual{position:relative;align-self:stretch;min-height:540px;background:var(--hero-img,url("/img/hero.jpg")) left center/cover no-repeat}
+.hero-visual::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(21,19,17,.45) 0%,rgba(21,19,17,.04) 24%,rgba(21,19,17,.3) 72%,var(--char) 100%)}
+.hero-main{display:flex;flex-direction:column;gap:16px;padding:40px max(20px,calc((100vw - 1160px)/2)) 40px 48px;min-width:0}
+.hero-main .hero-copy{max-width:640px}
+.hv-cue{display:none}
+@keyframes heroRise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes heroSink{from{opacity:1;transform:scale(1)}to{opacity:.5;transform:scale(1.07)}}
+@keyframes cueFade{to{opacity:0}}
+@keyframes cueDrop{0%{opacity:.25;transform:translateY(-5px)}50%{opacity:1}100%{opacity:.25;transform:translateY(5px)}}
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:0;padding:0}
+  .hero-visual{margin:0;min-height:0;height:68vh;max-height:560px;background-image:var(--hero-img-m,url("/img/hero-mobile.jpg"));background-position:center 36%}
+  .hero-visual::after{background:linear-gradient(180deg,rgba(21,19,17,.3) 0%,rgba(21,19,17,0) 40%,rgba(21,19,17,.72) 86%,var(--char) 100%)}
+  .hv-cue{display:flex;align-items:center;gap:8px;position:absolute;left:0;right:0;bottom:16px;justify-content:center;z-index:2;color:#d8d0bd;font-size:12px;font-weight:600}
+  .hv-cue i{width:1px;height:24px;background:linear-gradient(#d8d0bd,rgba(216,208,189,0));animation:cueDrop 1.8s ease-in-out infinite}
+  .hero-main{padding:24px 16px 36px;gap:18px}
+  .hero-main .hero-copy{max-width:none}
+}
+@media (max-width:900px){
+  .hero-visual{opacity:calc(1 - var(--hero-p,0) * .45);transform:scale(calc(1 + var(--hero-p,0) * .06));transform-origin:50% 35%;will-change:opacity,transform}
+  .hv-cue{opacity:calc(1 - var(--hero-p,0) * 2.2)}
+  .hero-copy>.seq{opacity:0;transform:translateY(26px);transition:opacity .55s ease,transform .55s cubic-bezier(.22,.61,.36,1)}
+  .hero-copy>.seq.in{opacity:1;transform:none}
+}
+@media (prefers-reduced-motion:reduce){.hero-visual{opacity:1!important;transform:none!important}.hv-cue i{animation:none!important}.hero-copy>.seq{transition:none!important}}

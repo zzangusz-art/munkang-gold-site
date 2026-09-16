@@ -68,6 +68,8 @@ router.get('/', (req, res) => {
   const body = `
 <section class="hero">
   <div class="wrap hero-grid">
+    <div class="hero-visual"><span class="hv-cue" aria-hidden="true"><i></i>아래로 내리면 오늘 시세</span></div>
+    <div class="hero-main">
     <div class="hero-copy">
       <p class="eyebrow">종로3가역 11번 출구 앞 금·은 매입·판매</p>
       <h1>오늘 금 한 돈,<br><span class="hl">${g ? fmtNum(g.buy) + '원' : '당일 시세'}</span>에 사드립니다</h1>
@@ -83,6 +85,7 @@ router.get('/', (req, res) => {
       </div>
       <table class="hb-table"><tbody>${st.rows.filter(r => r.code !== 'au999').map(r => `<tr data-code="${attr(r.code)}"><th>${esc(r.name)}</th><td class="num">${fmtNum(r.buy)}</td><td class="num">${r.sell ? fmtNum(r.sell) : '<span class="muted">—</span>'}</td><td class="num">${chg(r.diff, r.pct)}</td></tr>`).join('')}</tbody><tfoot><tr><th></th><td class="num">매입</td><td class="num">판매</td><td class="num">전일비</td></tr></tfoot></table>
       <div class="hb-foot"><span class="unit-toggle" role="group" aria-label="단위"><button class="ut active" data-unit="don">돈</button><button class="ut" data-unit="g">g</button></span><a href="/price">전체 시세표 →</a></div>
+    </div>
     </div>
   </div>
   <div class="ticker" aria-label="오늘의 시세 흐름"><div class="ticker-track" id="tickerTrack">${tickerHtml}${tickerHtml}</div></div>

@@ -127,7 +127,7 @@ def extend_left_dark(im, out_w, out_h, sign_center=0.40, target=0.66):
     return canvas.crop((start, 0, start + out_w, h))
 
 
-def trim_corner(im, right_pct=0.085, bottom_pct=0.075):
+def trim_corner(im, right_pct=0.13, bottom_pct=0.08):
     """오른쪽 아래 모서리(생성 이미지 워터마크 영역)를 잘라낸다."""
     w, h = im.size
     return im.crop((0, 0, int(w * (1 - right_pct)), int(h * (1 - bottom_pct))))
@@ -158,24 +158,51 @@ def spread(im, out_w, out_h, target):
     return (extend_left_dark if DARK else extend_left)(im, out_w, out_h, target=target)
 
 
+def panel(im, w, h, top_bias=0.5):
+    """세로로 긴 패널용 — 가로를 꽉 채우고 남는 위아래는 벽면을 늘려 채운다(간판이 잘리지 않게)."""
+    base = im.resize((w, max(1, int(im.height * w / im.width + 0.5))), Image.LANCZOS)
+    if base.height >= h:
+        return cover(im, w, h, 0.5)
+    scale = w / im.width
+    if scale > 2:
+        base = base.filter(ImageFilter.GaussianBlur(min(5.0, (scale - 1) * 0.4)))
+    pad = h - base.height
+    top = int(pad * top_bias)
+    edge = max(4, int(base.height * 0.07))
+    canvas = Image.new('RGB', (w, h))
+    if top > 0:
+        strip = base.crop((0, 0, w, edge)).resize((w, top), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
+        canvas.paste(ImageEnhance.Brightness(strip).enhance(0.9), (0, 0))
+    if pad - top > 0:
+        strip = base.crop((0, base.height - edge, w, base.height)).resize((w, pad - top), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
+        canvas.paste(ImageEnhance.Brightness(strip).enhance(0.9), (0, top + base.height))
+    # 늘린 벽면과 원본 경계가 보이지 않도록 위아래를 부드럽게 겹친다
+    fade = max(40, int(base.height * 0.12))
+    m = Image.new('L', (1, base.height), 255)
+    for y in range(fade):
+        v = int(255 * (y / max(1, fade - 1)))
+        m.putpixel((0, y), v)
+        m.putpixel((0, base.height - 1 - y), v)
+    canvas.paste(base, (0, top), m.resize((w, base.height), Image.BILINEAR))
+    return canvas
+
+
 def hero_desktop(src):
-    """데스크톱 히어로 배경 — 간판이 오른쪽에 오고, 왼쪽은 글자를 얹을 수 있게 비운다.
-    어둡게 까는 그라데이션은 CSS가 얹으므로 여기서는 전체 밝기만 살짝 낮춘다."""
-    w, h = 2400, 1100
-    im = spread(grade(src), w, h, 0.66)
-    im = ImageEnhance.Brightness(im).enhance(0.98 if DARK else 0.86)
-    top_layer, top_mask = linear_overlay((w, h), [(0.0, 120), (0.28, 30), (0.78, 40), (1.0, 130)], horizontal=False)
-    im = Image.composite(top_layer, im, top_mask)
-    return grain(vignette(im, 40))
+    """데스크톱 히어로 왼쪽 패널용 — 간판이 화면 왼쪽 절반을 채운다(글자는 오른쪽 어두운 면에 올라감)."""
+    w, h = 1200, 1500  # 왼쪽 패널이 세로로 길다
+    im = panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5)
+    if not DARK:
+        im = ImageEnhance.Brightness(im).enhance(0.88)
+    return grain(vignette(im, 26))
 
 
 def hero_mobile(src):
-    """모바일 히어로 배경 — 세로 화면. 조명 분위기만 남기고 어둡게."""
-    w, h = 1200, 1500
-    im = cover(grade(src), w, h, focus=0.42 if DARK else 0.5)
-    im = ImageEnhance.Brightness(im).enhance(1.0 if DARK else 0.9)
-    layer, mask = linear_overlay((w, h), [(0.0, 95), (0.5, 70), (1.0, 60)] if DARK else [(0.0, 150), (0.5, 120), (1.0, 95)], horizontal=False)
-    return grain(Image.composite(layer, im, mask))
+    """모바일 상단 간판 블록용 — 세로로 길게, 간판을 가운데."""
+    w, h = 1200, 1400
+    im = panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5)
+    if not DARK:
+        im = ImageEnhance.Brightness(im).enhance(0.9)
+    return grain(vignette(im, 20))
 
 
 def og_image(src):

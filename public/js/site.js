@@ -124,6 +124,32 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
   }
 
+  // 모바일 히어로 시퀀스 — 간판을 먼저 보여주고, 스크롤하면 문구가 차례로 올라온다
+  const heroSec = $('.hero'); const heroVisual = $('.hero-visual'); const heroCopy = $('.hero-copy');
+  if (heroSec && heroVisual && heroCopy) {
+    const mq = window.matchMedia('(max-width:900px)');
+    const items = $$(':scope > *', heroCopy);
+    let ticking = false;
+    const paint = () => {
+      if (!mq.matches) return;
+      const h = heroVisual.offsetHeight || 1;
+      heroSec.style.setProperty('--hero-p', Math.min(1, Math.max(0, window.scrollY / h)).toFixed(3));
+      const trigger = window.innerHeight * 0.78;
+      items.forEach(el => { if (el.getBoundingClientRect().top < trigger) el.classList.add('in'); });
+    };
+    const setup = () => {
+      if (mq.matches) {
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        items.forEach((el, i) => { el.classList.add('seq'); el.style.transitionDelay = `${i * 90}ms`; if (still) el.classList.add('in'); });
+        if (!still) paint();
+      }
+      else { items.forEach(el => { el.classList.remove('seq', 'in'); el.style.transitionDelay = ''; }); heroSec.style.removeProperty('--hero-p'); }
+    };
+    window.addEventListener('scroll', () => { if (ticking) return; ticking = true; requestAnimationFrame(() => { paint(); ticking = false; }); }, { passive: true });
+    window.addEventListener('resize', setup, { passive: true });
+    setup();
+  }
+
   // 유튜브 롤링(홈 계산기 옆) — 3.5초마다 한 칸, 마우스를 올리면 멈춤, 누르면 팝업 재생
   const roll = $('#ytRoll'); const ytModal = $('#ytModal');
   if (roll && ytModal) {
