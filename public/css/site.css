@@ -370,3 +370,7 @@ body{background:#fff}
   .hero-visual::after{background:linear-gradient(180deg,rgba(255,255,255,0) 78%,rgba(255,255,255,.5) 90%,#fff 100%)}
   .hv-cue{bottom:6px}
 }
+
+/* 제품 카드 옵션 안내 (09-16) */
+.pc-opt{margin-top:6px;font-size:12.5px;color:var(--gold-d,#8a6a1f);font-weight:600}
+.opt-box+.calc-actions{margin-top:18px}

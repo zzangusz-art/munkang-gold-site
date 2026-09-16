@@ -23,11 +23,31 @@ function seedQuotes() {
   if (q.spot) { const { setSetting } = require('../db'); for (const [k, v] of Object.entries(q.spot)) setSetting(k, v); }
   return rows.length;
 }
+const PRODUCT_INS = 'INSERT OR IGNORE INTO products (slug,category,name,metal,purity,weight_g,quote_code,labor,margin_pct,price_fixed,summary,body_html,faq_json,image,badge,featured,sort,status,ready_today,karat_option,stone_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+function productArgs(p, sort, ts) {
+  const stones = Array.isArray(p.stone_json) ? JSON.stringify(p.stone_json) : (p.stone_json || null);
+  return [p.slug, p.category, p.name, p.metal || 'gold', p.purity || '999.9', p.weight_g, p.quote_code || (p.metal === 'silver' ? 'ag999' : 'au999'), p.labor || 0, p.margin_pct ?? null, p.price_fixed ?? null, p.summary || '', p.body_html || '', p.faq_json || '[]', p.image || '', p.badge || '', p.featured ? 1 : 0, sort, 'published', p.ready_today ? 1 : 0, p.karat_option ? 1 : 0, stones, ts, ts];
+}
 function seedProducts() {
   if (db.prepare('SELECT COUNT(*) c FROM products').get().c) return 0;
   const ts = now(); let n = 0;
-  const ins = db.prepare('INSERT OR IGNORE INTO products (slug,category,name,metal,purity,weight_g,quote_code,labor,margin_pct,price_fixed,summary,body_html,faq_json,image,badge,featured,sort,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-  J('products.json').forEach((p, i) => { ins.run(p.slug, p.category, p.name, p.metal || 'gold', p.purity || '999.9', p.weight_g, p.quote_code || (p.metal === 'silver' ? 'ag999' : 'au999'), p.labor || 0, p.margin_pct ?? null, p.price_fixed ?? null, p.summary || '', p.body_html || '', p.faq_json || '[]', p.image || '', p.badge || '', p.featured ? 1 : 0, i, 'published', ts, ts); n++; });
+  const ins = db.prepare(PRODUCT_INS);
+  J('products.json').forEach((p, i) => { ins.run(...productArgs(p, i, ts)); n++; });
+  return n;
+}
+// 운영 DB에 다이아 주얼리(모이사나이트·랩다이아 옵션)를 한 번만 추가 — 관리자가 지운 제품은 다시 넣지 않는다 (2026-09-16)
+function seedDiamondJewelry() {
+  const { getSetting, setSetting } = require('../db');
+  if (getSetting('seed_diamond_20260916')) return 0;
+  const ts = now(); let n = 0;
+  const ins = db.prepare(PRODUCT_INS);
+  const base = (db.prepare("SELECT MAX(sort) m FROM products").get().m || 0) + 1;
+  const fill = db.prepare("UPDATE products SET karat_option=1, stone_json=?, updated_at=? WHERE slug=? AND (stone_json IS NULL OR stone_json IN ('','[]'))");
+  J('products.json').filter(p => p.diamond).forEach((p, i) => {
+    const args = productArgs(p, base + i, ts);
+    n += ins.run(...args).changes || fill.run(args[20], ts, p.slug).changes;  // 이미 있는 같은 제품은 옵션만 채운다
+  });
+  setSetting('seed_diamond_20260916', String(ts));
   return n;
 }
 function seedTopics(force) {
@@ -58,7 +78,7 @@ function seedNotice() {
   return 1;
 }
 function seedIfEmpty(force = false) {
-  const r = { quotes: seedQuotes(), products: seedProducts(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
+  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
   if (Object.values(r).some(Boolean)) console.log('[seed]', JSON.stringify(r));
   return r;
 }

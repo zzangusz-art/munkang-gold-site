@@ -49,9 +49,15 @@ function datasetLd(rows, updated) {
   const site = settings.siteUrl();
   return { '@context': 'https://schema.org', '@type': 'Dataset', name: '오늘의 금·은·백금 시세 — 문강금은 종로3가', description: `순금(24K)·18K·14K·백금·은 ${rows.length}종목의 1돈(3.75g) 매입가·판매가와 전일 대비 등락. 문강금은 매장 고시가로 매일 갱신하는 1차 데이터.`, url: `${site}/price`, creator: { '@id': site + '/#org' }, license: `${site}/privacy`, dateModified: updated ? isoFromTs(updated) : kstDate(), temporalCoverage: kstDate(), spatialCoverage: '서울 종로구', keywords: ['오늘의 금시세', '금 매입가', '순금 시세', '18K 시세', '14K 시세', '은시세', '백금시세', '종로 금은방'], variableMeasured: ['매입가(원/돈)', '판매가(원/돈)', '전일 대비'], isAccessibleForFree: true, distribution: [{ '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${site}/api/prices` }] };
 }
+function stoneTag(p) {
+  const st = quotes.stoneOptions(p);
+  if (!st.length && !p.karat_option) return '';
+  const parts = [p.karat_option ? '14K·18K' : '', st.map(x => x.name).join('·')].filter(Boolean);
+  return `<p class="pc-opt">${esc(parts.join(' / '))} 선택</p>`;
+}
 function productCard(p) {
   const pr = quotes.productPrice(p);
-  return `<a class="pcard reveal" href="/products/${attr(p.slug)}" data-cat="${attr(p.category)}" data-name="${attr(p.name)}" data-price="${pr.price || 0}" data-weight="${p.weight_g || 0}"><div class="pc-img ${attr(p.metal)}">${p.image ? `<img src="${attr(p.image)}" alt="${attr(p.name)}" loading="lazy">` : `<span class="pc-glyph">${p.metal === 'silver' ? 'Ag' : 'Au'}</span><span class="pc-w">${p.weight_g}g</span>`}${p.ready_today ? '<span class="badge badge-today">오늘 출발</span>' : p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}</div><div class="pc-body"><span class="pc-cat">${CAT_LABEL[p.category] || ''}</span><h3>${esc(p.name)}</h3><p class="pc-price">${pr.price ? `<b>${fmtNum(pr.price)}원</b>` : '<b>시세 문의</b>'}</p><p class="pc-basis">${pr.basis ? `${esc(pr.basis)} 시세 기준` : p.price_fixed ? '고정가' : '당일 시세 연동'}</p></div></a>`;
+  return `<a class="pcard reveal" href="/products/${attr(p.slug)}" data-cat="${attr(p.category)}" data-name="${attr(p.name)}" data-price="${pr.price || 0}" data-weight="${p.weight_g || 0}"><div class="pc-img ${attr(p.metal)}">${p.image ? `<img src="${attr(p.image)}" alt="${attr(p.name)}" loading="lazy">` : `<span class="pc-glyph">${p.metal === 'silver' ? 'Ag' : 'Au'}</span><span class="pc-w">${p.weight_g}g</span>`}${p.ready_today ? '<span class="badge badge-today">오늘 출발</span>' : p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}</div><div class="pc-body"><span class="pc-cat">${CAT_LABEL[p.category] || ''}</span><h3>${esc(p.name)}</h3><p class="pc-price">${pr.price ? `<b>${fmtNum(pr.price)}원</b>` : '<b>시세 문의</b>'}</p><p class="pc-basis">${pr.basis ? `${esc(pr.basis)} 시세 기준` : p.price_fixed ? '고정가' : '당일 시세 연동'}</p>${stoneTag(p)}</div></a>`;
 }
 
 // ── 홈 ──
