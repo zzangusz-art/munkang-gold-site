@@ -35,9 +35,9 @@ def font(size, bold=True):
 
 def grade(im):
     """따뜻한 간판 조명을 살리고 대비를 정리한다."""
-    im = ImageEnhance.Color(im).enhance(1.12)
-    im = ImageEnhance.Contrast(im).enhance(1.10)
-    im = ImageEnhance.Brightness(im).enhance(0.96)
+    im = ImageEnhance.Color(im).enhance(1.06 if DARK else 1.12)
+    im = ImageEnhance.Contrast(im).enhance(1.04 if DARK else 1.10)
+    im = ImageEnhance.Brightness(im).enhance(1.0 if DARK else 0.96)
     return im
 
 
@@ -101,6 +101,38 @@ def vignette(im, strength=60):
     return Image.composite(Image.blend(im, dark, strength / 255), im, mask.point(lambda v: min(255, v)))
 
 
+def extend_left_dark(im, out_w, out_h, sign_center=0.40, target=0.66):
+    """어두운 실내 이미지용 — 왼쪽을 이미지의 어두운 톤으로 채우고 경계를 부드럽게 잇는다."""
+    h = out_h
+    w = max(1, int(im.width * h / im.height + 0.5))
+    scale = w / im.width
+    ph = im.resize((w, h), Image.LANCZOS)
+    if scale > 2:
+        ph = ph.filter(ImageFilter.GaussianBlur(min(5.0, (scale - 1) * 0.4)))
+    pad = max(out_w - w + int(w * 0.18), int(w * 0.35))
+    # 이미지 왼쪽 위/아래의 어두운 벽 색을 평균 내 채움색으로 쓴다
+    sample = ph.crop((0, 0, max(4, int(w * 0.06)), h)).resize((1, 1), Image.BOX).getpixel((0, 0))
+    fill = tuple(max(8, int(c * 0.72)) for c in sample[:3])
+    canvas = Image.new('RGB', (w + pad, h), fill)
+    # 사진 왼쪽 가장자리를 채움색으로 자연스럽게 녹인다
+    feather = max(40, int(w * 0.10))
+    edge = Image.new('L', (feather, 1))
+    for x in range(feather):
+        edge.putpixel((x, 0), int(255 * (x / max(1, feather - 1))))
+    mask = Image.new('L', (w, h), 255)
+    mask.paste(edge.resize((feather, h), Image.BILINEAR), (0, 0))
+    canvas.paste(ph, (pad, 0), mask)
+    sc = pad + sign_center * w
+    start = int(max(0, min(canvas.width - out_w, sc - target * out_w)))
+    return canvas.crop((start, 0, start + out_w, h))
+
+
+def trim_corner(im, right_pct=0.085, bottom_pct=0.075):
+    """오른쪽 아래 모서리(생성 이미지 워터마크 영역)를 잘라낸다."""
+    w, h = im.size
+    return im.crop((0, 0, int(w * (1 - right_pct)), int(h * (1 - bottom_pct))))
+
+
 def extend_left(im, out_w, out_h, sign_center=0.36, target=0.63):
     """사진 왼쪽을 벽면 색으로 늘려 글자 자리를 만들고, 간판이 target 위치(가로 비율)에 오도록 자른다."""
     h = out_h
@@ -119,12 +151,19 @@ def extend_left(im, out_w, out_h, sign_center=0.36, target=0.63):
     return canvas.crop((start, 0, start + out_w, h))
 
 
+DARK = False  # 어두운(스튜디오풍) 이미지면 True — main()에서 --dark 로 켠다
+
+
+def spread(im, out_w, out_h, target):
+    return (extend_left_dark if DARK else extend_left)(im, out_w, out_h, target=target)
+
+
 def hero_desktop(src):
     """데스크톱 히어로 배경 — 간판이 오른쪽에 오고, 왼쪽은 글자를 얹을 수 있게 비운다.
     어둡게 까는 그라데이션은 CSS가 얹으므로 여기서는 전체 밝기만 살짝 낮춘다."""
     w, h = 2400, 1100
-    im = extend_left(grade(src), w, h, target=0.66)
-    im = ImageEnhance.Brightness(im).enhance(0.86)
+    im = spread(grade(src), w, h, 0.66)
+    im = ImageEnhance.Brightness(im).enhance(0.98 if DARK else 0.86)
     top_layer, top_mask = linear_overlay((w, h), [(0.0, 120), (0.28, 30), (0.78, 40), (1.0, 130)], horizontal=False)
     im = Image.composite(top_layer, im, top_mask)
     return grain(vignette(im, 40))
@@ -133,17 +172,17 @@ def hero_desktop(src):
 def hero_mobile(src):
     """모바일 히어로 배경 — 세로 화면. 조명 분위기만 남기고 어둡게."""
     w, h = 1200, 1500
-    im = cover(grade(src), w, h, focus=0.5)
-    im = ImageEnhance.Brightness(im).enhance(0.9)
-    layer, mask = linear_overlay((w, h), [(0.0, 150), (0.5, 120), (1.0, 95)], horizontal=False)
+    im = cover(grade(src), w, h, focus=0.42 if DARK else 0.5)
+    im = ImageEnhance.Brightness(im).enhance(1.0 if DARK else 0.9)
+    layer, mask = linear_overlay((w, h), [(0.0, 95), (0.5, 70), (1.0, 60)] if DARK else [(0.0, 150), (0.5, 120), (1.0, 95)], horizontal=False)
     return grain(Image.composite(layer, im, mask))
 
 
 def og_image(src):
     """카카오톡·검색 공유 썸네일 — 사진 위에 로고와 문구를 얹는다(단독으로 쓰이므로 여기서 어둡게 처리)."""
     w, h = 1200, 630
-    im = extend_left(grade(src), w, h, target=0.74)
-    layer, mask = linear_overlay((w, h), [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
+    im = spread(grade(src), w, h, 0.74)
+    layer, mask = linear_overlay((w, h), [(0.0, 215), (0.42, 175), (0.72, 60), (1.0, 24)] if DARK else [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
     im = grain(Image.composite(layer, im, mask).convert('RGB'))
     d = ImageDraw.Draw(im)
     y = 92
@@ -172,19 +211,28 @@ def store_photo(src):
 def main():
     if len(sys.argv) < 2:
         print('사용법: python scripts/make-banner.py <사진 경로>'); sys.exit(1)
-    path = sys.argv[1]
+    global DARK
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    opts = [a for a in sys.argv[1:] if a.startswith('--')]
+    DARK = '--dark' in opts
+    path = args[0]
     if not os.path.exists(path):
         print('파일을 찾을 수 없습니다:', path); sys.exit(1)
     os.makedirs(SRC_DIR, exist_ok=True)
-    kept = os.path.join(SRC_DIR, 'store' + os.path.splitext(path)[1].lower())
+    kept = os.path.join(SRC_DIR, ('store-dark' if DARK else 'store') + os.path.splitext(path)[1].lower())
     if os.path.abspath(path) != os.path.abspath(kept):
         shutil.copy2(path, kept)
     src = Image.open(kept).convert('RGB')
-    print('원본', src.size)
+    if DARK:
+        src = trim_corner(src)  # 생성 이미지 워터마크 모서리 제거
+    print('원본', src.size, '(dark 모드)' if DARK else '')
     out = [
         ('hero.jpg', hero_desktop(src), dict(quality=82, optimize=True, progressive=True)),
         ('hero-mobile.jpg', hero_mobile(src), dict(quality=80, optimize=True, progressive=True)),
-        ('store.jpg', store_photo(src), dict(quality=84, optimize=True, progressive=True)),
+    ]
+    if '--keep-store' not in opts:
+        out.append(('store.jpg', store_photo(src), dict(quality=84, optimize=True, progressive=True)))
+    out += [
     ]
     for name, im, kw in out:
         p = os.path.join(IMG, name)
