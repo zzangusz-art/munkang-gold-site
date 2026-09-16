@@ -196,6 +196,30 @@ def panel(im, w, h, top_bias=0.5):
     return canvas
 
 
+def wall_extend(im, w, h, photo_ratio=0.74, sign_center=0.40):
+    """배너 칸에 맞춰 사진을 넣되, 사진이 차지하는 비율(photo_ratio)만큼만 쓰고
+    남는 위아래·좌우는 사진 맨 끝 줄 색을 그대로 늘려 잇는다. 벽면이 균일해 경계가 보이지 않는다."""
+    # 간판이 가운데 오도록 원본을 먼저 자른다
+    half = min(sign_center, 1 - sign_center)
+    im = im.crop((int(im.width * max(0, sign_center - half)), 0, int(im.width * min(1, sign_center + half)), im.height))
+    tw = max(1, int(w * photo_ratio)); th = max(1, int(im.height * tw / im.width))
+    if th > h * photo_ratio:
+        th = int(h * photo_ratio); tw = max(1, int(im.width * th / im.height))
+    base = im.resize((tw, th), Image.LANCZOS)
+    canvas = Image.new('RGB', (w, h))
+    x0 = (w - tw) // 2; y0 = (h - th) // 2
+    canvas.paste(base, (x0, y0))
+    if x0 > 0:  # 좌우로 가장자리 색을 늘린다
+        canvas.paste(base.crop((0, 0, 1, th)).resize((x0, th), Image.NEAREST), (0, y0))
+        canvas.paste(base.crop((tw - 1, 0, tw, th)).resize((w - tw - x0, th), Image.NEAREST), (x0 + tw, y0))
+    top = canvas.crop((0, y0, w, y0 + 1))
+    bottom = canvas.crop((0, y0 + th - 1, w, y0 + th))
+    if y0 > 0:
+        canvas.paste(top.resize((w, y0), Image.NEAREST), (0, 0))
+        canvas.paste(bottom.resize((w, h - th - y0), Image.NEAREST), (0, y0 + th))
+    return canvas
+
+
 def photo_on_wall(im, w, h, scale=0.6):
     """사진을 배경(벽 톤)과 같은 캔버스 위에 축소해 올린다 — 경계가 눈에 띄지 않게."""
     tone = im.crop((int(im.width * 0.02), int(im.height * 0.05), int(im.width * 0.16), int(im.height * 0.35))).resize((1, 1), Image.BOX).getpixel((0, 0))
@@ -223,7 +247,7 @@ def photo_on_wall(im, w, h, scale=0.6):
 def hero_desktop(src):
     """데스크톱 히어로 왼쪽 패널용 — 간판이 화면 왼쪽 절반을 채운다(글자는 오른쪽 어두운 면에 올라감)."""
     w, h = 1200, 1500  # 왼쪽 패널이 세로로 길다
-    im = cover(grade(src), w, h, focus=0.2) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
+    im = wall_extend(grade(src), w, h) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.88)
     return im if LIGHT else grain(vignette(im, 26))
@@ -232,7 +256,7 @@ def hero_desktop(src):
 def hero_mobile(src):
     """모바일 상단 간판 블록용 — 세로로 길게, 간판을 가운데."""
     w, h = 1200, 1400
-    im = cover(grade(src), w, h, focus=0.22) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
+    im = wall_extend(grade(src), w, h) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.9)
     return im if LIGHT else grain(vignette(im, 20))
