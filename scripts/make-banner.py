@@ -244,10 +244,49 @@ def photo_on_wall(im, w, h, scale=0.6):
     return canvas
 
 
+def soft_wall(im, w, h, sign_x=0.393, sign_y=0.51, sign_w=0.48, fill=0.56, at_x=0.5, at_y=0.47):
+    """간판을 칸 가운데에 두고 사진 폭으로 칸을 꽉 채운다. 모자라는 위·아래만 벽 끝줄 색을
+    가로로 곱게 펴서 늘리고 짧게 섞는다(좌우로는 늘리지 않아 줄무늬가 생기지 않는다).
+    sign_x/sign_y: 원본에서 간판 중심, sign_w: 원본 폭 대비 간판 폭, fill: 칸 폭 대비 간판 폭."""
+    cw = im.width * sign_w / fill                      # 칸 폭에 해당하는 원본 폭
+    x0 = im.width * sign_x - cw * at_x
+    x0 = max(0, min(x0, im.width - cw))
+    crop = im.crop((int(x0), 0, int(x0 + cw), im.height))
+    k = w / crop.width
+    ph = int(crop.height * k)
+    photo = crop.resize((w, ph), Image.LANCZOS)
+    oy = int(h * at_y - im.height * sign_y * k)
+
+    def edge_row(y1, y2):
+        row = photo.crop((0, y1, w, y2)).resize((w, 1), Image.BOX)
+        return row.resize((max(4, w // 40), 1), Image.BOX).resize((w, 1), Image.BICUBIC)
+
+    canvas = Image.new('RGB', (w, h))
+    band = max(20, ph // 25)
+    if oy > 0:
+        canvas.paste(edge_row(0, band).resize((w, oy)), (0, 0))
+    if oy + ph < h:
+        canvas.paste(edge_row(ph - band, ph).resize((w, h - oy - ph)), (0, oy + ph))
+    # 이음 부분을 짧게 섞는다
+    fade = max(30, ph // 4)
+    mask = Image.new('L', (1, ph), 255)
+    for i in range(fade):
+        v = int(255 * (i / fade) ** 1.5)
+        if oy > 0: mask.putpixel((0, i), v)
+        if oy + ph < h: mask.putpixel((0, ph - 1 - i), v)
+    if oy > 0 or oy + ph < h:
+        under = Image.new('RGB', (w, ph))
+        under.paste(edge_row(0, band).resize((w, ph // 2)), (0, 0))
+        under.paste(edge_row(ph - band, ph).resize((w, ph - ph // 2)), (0, ph // 2))
+        photo = Image.composite(photo, under, mask.resize((w, ph)))
+    canvas.paste(photo, (0, oy))
+    return grain(canvas, 3)
+
+
 def hero_desktop(src):
     """데스크톱 히어로 왼쪽 패널용 — 간판이 화면 왼쪽 절반을 채운다(글자는 오른쪽 어두운 면에 올라감)."""
-    w, h = 1200, 1500  # 왼쪽 패널이 세로로 길다
-    im = wall_extend(grade(src), w, h) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
+    w, h = 1000, 1800  # 왼쪽 패널이 세로로 길다(실제 칸 비율 약 0.52~0.6)
+    im = soft_wall(grade(src), w, h, fill=0.60, at_x=0.5, at_y=0.47) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.88)
     return im if LIGHT else grain(vignette(im, 26))
@@ -256,7 +295,7 @@ def hero_desktop(src):
 def hero_mobile(src):
     """모바일 상단 간판 블록용 — 세로로 길게, 간판을 가운데."""
     w, h = 1200, 1400
-    im = wall_extend(grade(src), w, h) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
+    im = soft_wall(grade(src), w, h, fill=0.66, at_x=0.5, at_y=0.46) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.9)
     return im if LIGHT else grain(vignette(im, 20))
