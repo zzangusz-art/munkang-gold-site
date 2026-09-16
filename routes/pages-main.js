@@ -184,6 +184,7 @@ ${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div 
     title: `문강금은 | 종로3가 금거래소·금은방 — 종로 금매입·골드바·돌반지, 오늘 순금 ${g ? fmtNum(g.buy) + '원/돈' : ''}`,
     description: `종로 금거래소·종로3가 금은방 문강금은(종로3가역 11번 출구 앞). 종로 금매입·골드바·돌반지·금반지. 오늘 순금 24K 매입가 ${g ? fmtNum(g.buy) + '원/돈(' + fmtNum(g.buyG) + '원/g)' : ''}, 18K·14K·백금·은 시세 매일 공개. 30분 정밀 감정·현장 현금·출장 매입, 골드바·실버바·돌반지 판매. ${s.hours}.`,
     path: '/', body, bodyClass: 'home',
+    extraHead: '<link rel="preload" as="image" href="/img/hero.jpg" media="(min-width:901px)"><link rel="preload" as="image" href="/img/hero-mobile.jpg" media="(max-width:900px)">',
     jsonld: [faqLd(faqs), datasetLd(st.rows, st.lastUpdated)],
     dateModified: st.lastUpdated ? isoFromTs(st.lastUpdated) : undefined,
   }));

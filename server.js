@@ -55,8 +55,11 @@ app.use(express.static(PUBLIC_DIR, { maxAge: '7d', index: false, setHeaders: (re
 
 // 임시 도메인(Railway *.up.railway.app 등)으로 접속되면 검색엔진 색인 금지
 app.use((req, res, next) => {
-  try { const canon = new URL(settings.siteUrl()).hostname; const host = String(req.hostname || '').toLowerCase();
-    if (host && host !== canon && host !== 'localhost' && host !== '127.0.0.1') res.setHeader('X-Robots-Tag', 'noindex, nofollow'); } catch (_) { /* no-op */ }
+  // 임시 주소(*.up.railway.app, localhost, IP 직접 접속)만 색인 금지.
+  // 정식 도메인이 SITE_URL과 달라도 색인은 막지 않는다(도메인 설정 실수로 사이트 전체가 검색에서 사라지는 사고 방지).
+  const host = String(req.hostname || '').toLowerCase();
+  const temporary = !host || host === 'localhost' || host === '127.0.0.1' || /\.up\.railway\.app$/.test(host) || /^[\d.]+$/.test(host) || /\.onrender\.com$/.test(host);
+  if (temporary) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   next();
 });
 app.use(analytics.middleware);
