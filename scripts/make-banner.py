@@ -18,7 +18,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMG = os.path.join(ROOT, 'public', 'img')
 SRC_DIR = os.path.join(IMG, 'source')
 GOLD = (233, 200, 118)
+GOLD_D = (169, 134, 27)
 INK = (21, 19, 17)
+PAPER = (255, 255, 255)
 
 FONT_CANDIDATES = [
     r'C:\Windows\Fonts\malgunbd.ttf', r'C:\Windows\Fonts\malgun.ttf',
@@ -35,6 +37,8 @@ def font(size, bold=True):
 
 def grade(im):
     """따뜻한 간판 조명을 살리고 대비를 정리한다."""
+    if LIGHT:
+        return ImageEnhance.Contrast(im).enhance(1.03)
     im = ImageEnhance.Color(im).enhance(1.06 if DARK else 1.12)
     im = ImageEnhance.Contrast(im).enhance(1.04 if DARK else 1.10)
     im = ImageEnhance.Brightness(im).enhance(1.0 if DARK else 0.96)
@@ -69,7 +73,7 @@ def grain(im, amount=6):
     return ImageChops.add(im, noise, 1.0, -128)  # 밝기는 그대로 두고 ±amount만 더한다
 
 
-def linear_overlay(size, stops, horizontal=True):
+def linear_overlay(size, stops, horizontal=True, color=None):
     """stops: [(위치0~1, 알파0~255)] — 검정 그라데이션 마스크."""
     w, h = size
     mask = Image.new('L', (w if horizontal else 1, 1 if horizontal else h))
@@ -87,7 +91,7 @@ def linear_overlay(size, stops, horizontal=True):
                 a = a1
         px[i if horizontal else 0, 0 if horizontal else i] = int(a)
     mask = mask.resize((w, h), Image.BILINEAR)
-    layer = Image.new('RGB', (w, h), INK)
+    layer = Image.new('RGB', (w, h), color or (PAPER if LIGHT else INK))
     return layer, mask
 
 
@@ -152,6 +156,7 @@ def extend_left(im, out_w, out_h, sign_center=0.36, target=0.63):
 
 
 DARK = False  # 어두운(스튜디오풍) 이미지면 True — main()에서 --dark 로 켠다
+LIGHT = False  # 흰 배경 사이트용 — main()에서 --light 로 켠다
 
 
 def spread(im, out_w, out_h, target):
@@ -169,15 +174,19 @@ def panel(im, w, h, top_bias=0.5):
     pad = h - base.height
     top = int(pad * top_bias)
     edge = max(4, int(base.height * 0.07))
-    canvas = Image.new('RGB', (w, h))
-    if top > 0:
-        strip = base.crop((0, 0, w, edge)).resize((w, top), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
-        canvas.paste(ImageEnhance.Brightness(strip).enhance(0.9), (0, 0))
-    if pad - top > 0:
-        strip = base.crop((0, base.height - edge, w, base.height)).resize((w, pad - top), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
-        canvas.paste(ImageEnhance.Brightness(strip).enhance(0.9), (0, top + base.height))
+    canvas = Image.new('RGB', (w, h), PAPER if LIGHT else (0, 0, 0))
+    def fill_block(box_h, src_box, at_y):
+        if box_h <= 0: return
+        if LIGHT:  # 밝은 벽은 단색으로 채워야 이음선이 안 보인다
+            tone = base.crop(src_box).resize((1, 1), Image.BOX).getpixel((0, 0))
+            canvas.paste(Image.new('RGB', (w, box_h), tone), (0, at_y))
+        else:
+            strip = base.crop(src_box).resize((w, box_h), Image.LANCZOS).filter(ImageFilter.GaussianBlur(26))
+            canvas.paste(ImageEnhance.Brightness(strip).enhance(0.9), (0, at_y))
+    fill_block(top, (0, 0, w, edge), 0)
+    fill_block(pad - top, (0, base.height - edge, w, base.height), top + base.height)
     # 늘린 벽면과 원본 경계가 보이지 않도록 위아래를 부드럽게 겹친다
-    fade = max(40, int(base.height * 0.12))
+    fade = max(40, int(base.height * (0.22 if LIGHT else 0.12)))
     m = Image.new('L', (1, base.height), 255)
     for y in range(fade):
         v = int(255 * (y / max(1, fade - 1)))
@@ -190,41 +199,42 @@ def panel(im, w, h, top_bias=0.5):
 def hero_desktop(src):
     """데스크톱 히어로 왼쪽 패널용 — 간판이 화면 왼쪽 절반을 채운다(글자는 오른쪽 어두운 면에 올라감)."""
     w, h = 1200, 1500  # 왼쪽 패널이 세로로 길다
-    im = panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5)
+    im = cover(grade(src), w, h, focus=0.2) if LIGHT else (panel(grade(src), w, h, 0.46) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.88)
-    return grain(vignette(im, 26))
+    return grain(vignette(im, 8 if LIGHT else 26), 4 if LIGHT else 6)
 
 
 def hero_mobile(src):
     """모바일 상단 간판 블록용 — 세로로 길게, 간판을 가운데."""
     w, h = 1200, 1400
-    im = panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5)
+    im = cover(grade(src), w, h, focus=0.22) if LIGHT else (panel(grade(src), w, h, 0.42) if DARK else cover(grade(src), w, h, focus=0.5))
     if not DARK:
         im = ImageEnhance.Brightness(im).enhance(0.9)
-    return grain(vignette(im, 20))
+    return grain(vignette(im, 6 if LIGHT else 20), 4 if LIGHT else 6)
 
 
 def og_image(src):
     """카카오톡·검색 공유 썸네일 — 사진 위에 로고와 문구를 얹는다(단독으로 쓰이므로 여기서 어둡게 처리)."""
     w, h = 1200, 630
-    im = spread(grade(src), w, h, 0.74)
-    layer, mask = linear_overlay((w, h), [(0.0, 215), (0.42, 175), (0.72, 60), (1.0, 24)] if DARK else [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
+    im = cover(grade(src), w, h, focus=0.55) if LIGHT else spread(grade(src), w, h, 0.74)
+    stops = [(0.0, 250), (0.44, 224), (0.72, 55), (1.0, 8)] if LIGHT else ([(0.0, 215), (0.42, 175), (0.72, 60), (1.0, 24)] if DARK else [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
+    layer, mask = linear_overlay((w, h), stops)
     im = grain(Image.composite(layer, im, mask).convert('RGB'))
     d = ImageDraw.Draw(im)
     y = 92
-    logo_path = os.path.join(IMG, 'logo-white.png')
+    logo_path = os.path.join(IMG, 'logo-dark.png' if LIGHT else 'logo-word.png')
     if os.path.exists(logo_path):
         logo = Image.open(logo_path).convert('RGBA')
-        lw = 288
+        lw = 250
         logo = logo.resize((lw, int(logo.height * lw / logo.width)), Image.LANCZOS)
         im.paste(logo, (84, y), logo)
         y += logo.height + 40
-    d.text((84, y), '종로3가 금·은 매입·판매', font=font(56), fill=(255, 255, 255))
+    d.text((84, y), '종로3가 금·은 매입·판매', font=font(56), fill=INK if LIGHT else (255, 255, 255))
     y += 76
-    d.text((84, y), '종로3가역 11번 출구 앞 · 매일 10:00–20:00', font=font(29), fill=GOLD)
+    d.text((84, y), '종로3가역 11번 출구 앞 · 매일 10:00–20:00', font=font(29), fill=GOLD_D if LIGHT else GOLD)
     y += 52
-    d.text((84, y), '30분 정밀 감정 · 현장 현금 지급 · 출장 매입', font=font(29), fill=(206, 200, 188))
+    d.text((84, y), '정밀 감정 후 현장 현금 지급 · 골드바 · 주얼리', font=font(29), fill=(90, 84, 74) if LIGHT else (206, 200, 188))
     return im
 
 
@@ -238,19 +248,20 @@ def store_photo(src):
 def main():
     if len(sys.argv) < 2:
         print('사용법: python scripts/make-banner.py <사진 경로>'); sys.exit(1)
-    global DARK
+    global DARK, LIGHT
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     opts = [a for a in sys.argv[1:] if a.startswith('--')]
     DARK = '--dark' in opts
+    LIGHT = '--light' in opts
     path = args[0]
     if not os.path.exists(path):
         print('파일을 찾을 수 없습니다:', path); sys.exit(1)
     os.makedirs(SRC_DIR, exist_ok=True)
-    kept = os.path.join(SRC_DIR, ('store-dark' if DARK else 'store') + os.path.splitext(path)[1].lower())
+    kept = os.path.join(SRC_DIR, ('store-light' if LIGHT else 'store-dark' if DARK else 'store') + os.path.splitext(path)[1].lower())
     if os.path.abspath(path) != os.path.abspath(kept):
         shutil.copy2(path, kept)
     src = Image.open(kept).convert('RGB')
-    if DARK:
+    if DARK or LIGHT:
         src = trim_corner(src)  # 생성 이미지 워터마크 모서리 제거
     print('원본', src.size, '(dark 모드)' if DARK else '')
     out = [

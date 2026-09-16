@@ -279,3 +279,82 @@ h1,h2,h3{text-wrap:balance}p,li,dd{text-wrap:pretty}
   .hero-copy>.seq.in{opacity:1;transform:none}
 }
 @media (prefers-reduced-motion:reduce){.hero-visual{opacity:1!important;transform:none!important}.hv-cue i{animation:none!important}.hero-copy>.seq{transition:none!important}}
+
+/* ══ 화이트 테마 (2026-09-16) — 배경을 흰색 계열로, 글자는 차콜, 포인트는 금색 ══ */
+:root{--bg:#fff;--bg-2:#f7f4ee;--line:#e6e1d6;--char:#26221d}
+body{background:#fff}
+.topbar{background:var(--bg-2);color:var(--ink-2);border-bottom:1px solid var(--line)}
+.topbar a{color:var(--ink-2)}
+.header{background:#fff;box-shadow:0 1px 0 var(--line)}
+.header.scrolled{box-shadow:0 2px 16px rgba(28,26,23,.08)}
+.nav-item>a{color:var(--ink)}
+.nav-item>a:hover,.nav-item.active>a{background:var(--bg-2);color:var(--gold-d)}
+.burger span{background:var(--ink)}
+.logo img{height:44px;width:auto}
+.mobile-nav{background:#fff;color:var(--ink);border-top:1px solid var(--line)}
+.mobile-nav details{border-bottom:1px solid var(--line)}
+.mobile-nav li a{color:var(--ink-2)}
+.mobile-nav .btn-ghost-dark{border-color:var(--char);color:var(--char)}
+/* 히어로 */
+.hero{background:linear-gradient(180deg,#fbf9f5 0%,#fff 55%)}
+.hero .eyebrow{color:var(--gold-d)}
+.hero h1{color:var(--ink)}
+.hl{color:var(--gold-d)}
+.hero .lead,.lead{color:var(--ink-2)}
+.trust{color:var(--muted)}.trust li+li::before{background:var(--line)}
+.hero-visual::after{background:linear-gradient(90deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,.45) 76%,#fff 100%)}
+.hv-cue{color:var(--muted)}.hv-cue i{background:linear-gradient(var(--muted),rgba(122,116,104,0))}
+.hero-board{background:#fff;border:1px solid var(--line);box-shadow:0 18px 44px rgba(28,26,23,.10)}
+.hb-head,.hb-name,.hb-sub{color:var(--muted)}
+.hb-price{color:var(--ink)}
+.hb-time{color:var(--gold-d)}
+.hb-main{border-bottom-color:var(--line)}
+.hb-table th{color:var(--ink-2)}
+.hb-table td{color:var(--ink)}
+.hb-table tfoot td{color:var(--muted)}
+.hero .flash{animation:flash .8s}
+/* 시세 띠 */
+.ticker{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tk{color:var(--ink-2)}.tk b{color:var(--gold-d)}
+.quote-bar{background:var(--bg-2);color:var(--ink-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.qb-label,.qb-more{color:var(--gold-d)}.qb-item{color:var(--ink-2)}
+/* 띠 배너·푸터·카드 */
+.cta-band{background:var(--bg-2);color:var(--ink);border-top:1px solid var(--line)}
+.cta-band h2{color:var(--ink)}.cta-band p{color:var(--ink-2)}
+.btn-light{background:var(--char);color:#fff}
+.footer{background:var(--bg-2);color:var(--ink-2);border-top:1px solid var(--line)}
+.footer h3{color:var(--ink)}.footer a{color:var(--ink-2)}.f-kw{color:var(--muted)}
+.footer address{color:var(--ink-2)}
+.stat-card{background:var(--bg-2);color:var(--ink);border:1px solid var(--line)}
+.stat-card b{color:var(--gold-d)}
+.greeting{background:var(--bg-2);color:var(--ink);border:1px solid var(--line)}
+.greeting b{color:var(--gold-d)}
+.badges span{border-color:var(--gold-d);color:var(--gold-d)}
+.sig{color:var(--muted)}
+/* 제품 옵션(순도·스톤) */
+.opt-box{border-top:1px solid var(--line);margin-top:14px;padding-top:14px;display:grid;gap:10px}
+.opt-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.opt-label{font-size:13px;font-weight:700;color:var(--muted);min-width:40px}
+.opt-box .chips{display:flex;gap:6px;flex-wrap:wrap}
+.opt-box .chip small{font-weight:600;color:var(--muted)}
+.opt-box .chip.active small{color:inherit}
+.badge-today{background:var(--gold-d);color:#fff}
+/* 네이버 지도 카드 */
+.map-card{display:flex;flex-direction:column;gap:4px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:var(--bg-2);color:var(--ink)}
+.map-card:hover{border-color:var(--gold);text-decoration:none}
+.map-card b{font-size:16px}.map-card span{font-size:14px;color:var(--ink-2)}
+.map-card .map-go{color:var(--gold-d);font-weight:700;margin-top:6px}
+.map-card.lg{min-height:220px;justify-content:center}
+
+/* 화이트 테마 보정 — 흰 배경에서 안 보이던 버튼·토글·글자 */
+.btn-call{background:var(--bg-2);color:var(--ink);border-color:var(--line)}
+.btn-call:hover{border-color:var(--gold)}
+.btn-ghost{background:transparent;border-color:var(--char);color:var(--char)}
+.hero .unit-toggle,.hero-board .unit-toggle{border-color:var(--line)}
+.hero .ut,.hero-board .ut{color:var(--ink-2)}
+.hero .ut.active,.hero-board .ut.active{background:var(--gold);color:#1a1408}
+.hb-foot a{color:var(--gold-d)}
+.qb-item b{color:var(--ink)}
+.note{color:var(--muted)}
+.crumbs li+li::before{color:var(--muted)}
+.cta-band .btn-kakao{border-color:transparent}

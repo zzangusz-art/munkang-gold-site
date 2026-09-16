@@ -161,6 +161,17 @@ CREATE TABLE IF NOT EXISTS videos (
 );
 `);
 
+// ── 마이그레이션(기존 DB에도 안전하게 적용) ──
+const tableCols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
+function addColumn(table, name, decl) { if (!tableCols(table).includes(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${decl}`); }
+addColumn('products', 'ready_today', 'INTEGER DEFAULT 0');   // 오늘 출발(즉시 수령) 표시
+addColumn('products', 'karat_option', 'INTEGER DEFAULT 0');  // 주얼리: 14K 기준 등록 + 18K 선택(중량 ×1.2)
+addColumn('products', 'stone_json', 'TEXT');                 // 스톤 옵션 [{name,add}] 모이사나이트·랩다이아 등
+db.exec("UPDATE products SET category='gift' WHERE category IN ('baby','coin')");  // 카테고리 6종 개편(2026-09-16)
+db.exec("UPDATE products SET ready_today=1 WHERE ready_today=0 AND badge='오늘출발'");
+db.exec("DELETE FROM quote_history WHERE quote_id IN (SELECT id FROM quotes WHERE code='au916')");
+db.exec("DELETE FROM quotes WHERE code='au916'");            // 22K는 표시하지 않음
+
 const getStmt = db.prepare('SELECT value FROM settings WHERE key=?');
 const setStmt = db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
 function getSetting(key, def = '') { const r = getStmt.get(key); return r ? r.value : def; }

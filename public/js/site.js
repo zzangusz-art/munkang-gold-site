@@ -175,6 +175,22 @@
     move(); play();
   }
 
+  // 제품 옵션(순도 14K·18K, 스톤) — 고르면 가격·중량이 바로 바뀐다
+  const optBox = $('#pOpts');
+  if (optBox) {
+    let combo = {}; try { combo = JSON.parse(optBox.dataset.combo || '{}'); } catch (_) { /* no-op */ }
+    let karat = '14k'; let stone = '0';
+    const priceEl = $('#pPrice'); const weightEl = $('#pWeight'); const applyBtn = $('.spec-card .btn-gold');
+    const render = () => {
+      const c = combo[`${karat}|${stone}`]; if (!c) return;
+      if (priceEl && c.price) { priceEl.textContent = fmt(c.price) + '원'; priceEl.classList.remove('flash'); void priceEl.offsetWidth; priceEl.classList.add('flash'); }
+      if (weightEl && c.weight) weightEl.textContent = `${c.weight}g (${c.don}돈)`;
+      if (applyBtn) { const u = new URL(applyBtn.href, location.origin); u.searchParams.set('opt', `${karat === '18k' ? '18K' : '14K'}${stone !== '0' ? ' / ' + ($(`[data-stone="${stone}"]`, optBox) || {}).textContent.trim() : ''}`); applyBtn.href = u.pathname + u.search; }
+    };
+    $$('[data-karat]', optBox).forEach(b => b.addEventListener('click', () => { karat = b.dataset.karat; $$('[data-karat]', optBox).forEach(x => x.classList.toggle('active', x === b)); render(); }));
+    $$('[data-stone]', optBox).forEach(b => b.addEventListener('click', () => { stone = b.dataset.stone; $$('[data-stone]', optBox).forEach(x => x.classList.toggle('active', x === b)); render(); }));
+  }
+
   // 예약 폼 URL 파라미터 프리필
   const params = new URLSearchParams(location.search);
   if (params.get('item')) { const i = $('input[name=item]'); if (i && !i.value) i.value = params.get('item'); }

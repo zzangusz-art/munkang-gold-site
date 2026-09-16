@@ -59,11 +59,11 @@ let fails = 0; const ok = (c, msg, extra = '') => { console.log(`${c ? '✔' : '
   r = await A('/quotes', { method: 'POST', body: JSON.stringify({ rows: [{ code: 'au999', buy: 700000, sell: 750000 }] }) }); ok(r.status === 200, '시세 수동 입력');
   r = await get('/api/prices'); const j2 = JSON.parse(r.text); ok(j2.items[0].buy_per_don === 700000 && j2.items[0].diff === 700000 - j.items[0].buy_per_don, '시세 반영·전일대비 계산', `diff ${j2.items[0].diff}`);
   r = await A('/quotes/template.xlsx'); const xbuf = Buffer.from(await r.arrayBuffer()); ok(r.status === 200 && xbuf.length > 3000, '시세 엑셀 양식 다운로드', `${xbuf.length} bytes`);
-  const XLSX = require('xlsx'); const wb = XLSX.read(xbuf, { type: 'buffer' }); const ws = wb.Sheets['시세']; const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 }); aoa[3][2] = 500000; wb.Sheets['시세'] = XLSX.utils.aoa_to_sheet(aoa); const up = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const XLSX = require('xlsx'); const wb = XLSX.read(xbuf, { type: 'buffer' }); const ws = wb.Sheets['시세']; const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 }); aoa[2][2] = 500000; wb.Sheets['시세'] = XLSX.utils.aoa_to_sheet(aoa); const up = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   const fd = new FormData(); fd.append('file', new Blob([up], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'q.xlsx');
-  r = await fetch(BASE + '/api/admin/quotes/upload', { method: 'POST', headers: { cookie }, body: fd }); const uj = await r.json(); ok(r.status === 200 && uj.rows >= 6, '시세 엑셀 업로드', `${uj.rows}행`);
+  r = await fetch(BASE + '/api/admin/quotes/upload', { method: 'POST', headers: { cookie }, body: fd }); const uj = await r.json(); ok(r.status === 200 && uj.rows >= 5, '시세 엑셀 업로드', `${uj.rows}행`);
   ok(db.prepare("SELECT buy FROM quotes WHERE code='au750'").get().buy === 500000, '엑셀 값 반영(18K 500,000)');
-  r = await A('/quotes/spot/apply', { method: 'POST' }); ok(r.status === 200 && (await r.json()).rows >= 5, '국제시세 → 순금 시세 자동 계산');
+  r = await A('/quotes/spot/apply', { method: 'POST' }); ok(r.status === 200 && (await r.json()).rows >= 4, '국제시세 → 순금 시세 자동 계산');
   r = await A('/products'); const pl = await r.json(); ok(pl.length >= 15 && pl[0].price > 0, '제품 목록·시세 연동 가격', `${pl.length}개 · ${pl[0].name} ${pl[0].price}원`);
   r = await A('/automation/generate', { method: 'POST', body: JSON.stringify({ type: 'report', template: true }) }); const g1 = await r.json(); ok(r.status === 200 && g1.post && g1.post.status === 'published', '금시세 리포트 템플릿 생성', g1.post?.title);
   r = await A('/automation/generate', { method: 'POST', body: JSON.stringify({ type: 'product', template: true }) }); const g2 = await r.json(); ok(r.status === 200 && g2.post, '제품 소개 템플릿 생성', g2.post?.title);
