@@ -306,8 +306,9 @@ def hero_mobile(src):
 def og_image(src):
     """카카오톡·검색 공유 썸네일 — 사진 위에 로고와 문구를 얹는다(단독으로 쓰이므로 여기서 어둡게 처리)."""
     w, h = 1200, 630
-    im = cover(grade(src), w, h, focus=0.55) if LIGHT else spread(grade(src), w, h, 0.74)
-    stops = [(0.0, 250), (0.44, 224), (0.72, 55), (1.0, 8)] if LIGHT else ([(0.0, 215), (0.42, 175), (0.72, 60), (1.0, 24)] if DARK else [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
+    # 밝은 모드: 간판을 오른쪽에 두고 왼쪽은 문구 자리로 비운다(문구에 간판이 가려지지 않게)
+    im = lighten(soft_wall(grade(src), w, h, fill=0.30, at_x=0.795, at_y=0.52)) if LIGHT else spread(grade(src), w, h, 0.74)
+    stops = [(0.0, 245), (0.40, 225), (0.56, 60), (0.66, 0), (1.0, 0)] if LIGHT else ([(0.0, 215), (0.42, 175), (0.72, 60), (1.0, 24)] if DARK else [(0.0, 240), (0.42, 214), (0.72, 96), (1.0, 52)])
     layer, mask = linear_overlay((w, h), stops)
     im = grain(Image.composite(layer, im, mask).convert('RGB'))
     d = ImageDraw.Draw(im)
