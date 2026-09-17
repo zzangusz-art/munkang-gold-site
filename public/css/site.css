@@ -374,3 +374,17 @@ body{background:#fff}
 /* 제품 카드 옵션 안내 (09-16) */
 .pc-opt{margin-top:6px;font-size:12.5px;color:var(--gold-d,#8a6a1f);font-weight:600}
 .opt-box+.calc-actions{margin-top:18px}
+
+/* 메인 배너 2차 (09-17) — 간판 칸을 넓히고, 본문 쪽은 이미지 자체를 마스크로 투명하게 풀어 히어로 배경과 그대로 이어지게 */
+@media (min-width:901px){
+  .hero-grid{grid-template-columns:.9fr 1.1fr}
+  .hero-main{padding-left:64px}
+  .hero-visual::after{content:none}
+  .hero-visual{-webkit-mask-image:linear-gradient(90deg,#000 58%,rgba(0,0,0,.55) 80%,transparent 100%);mask-image:linear-gradient(90deg,#000 58%,rgba(0,0,0,.55) 80%,transparent 100%)}
+}
+@media (max-width:900px){
+  .hero-visual::after{background:linear-gradient(180deg,rgba(252,251,248,0) 70%,rgba(252,251,248,.6) 86%,#fcfbf8 100%)}
+}
+
+/* 상단 메뉴 오른쪽 정렬 (09-17) */
+.nav{justify-content:flex-end;margin-right:12px}
