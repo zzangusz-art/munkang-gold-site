@@ -170,7 +170,19 @@ addColumn('products', 'stone_json', 'TEXT');                 // 스톤 옵션 [{
 db.exec("UPDATE products SET category='gift' WHERE category IN ('baby','coin')");  // 카테고리 6종 개편(2026-09-16)
 db.exec("UPDATE products SET ready_today=1 WHERE ready_today=0 AND badge='오늘출발'");
 db.exec("DELETE FROM quote_history WHERE quote_id IN (SELECT id FROM quotes WHERE code='au916')");
-db.exec("DELETE FROM quotes WHERE code='au916'");            // 22K는 표시하지 않음
+db.exec("DELETE FROM quotes WHERE code='au916'");
+// 시세는 관리자 수기 입력이 기본(2026-09-18)
+if (!db.prepare("SELECT value FROM settings WHERE key='manual_quotes_20260918'").get()) {
+  db.prepare("INSERT INTO settings (key,value) VALUES ('quote_source','manual') ON CONFLICT(key) DO UPDATE SET value='manual'").run();
+  db.prepare("INSERT INTO settings (key,value) VALUES ('manual_quotes_20260918',?)").run(String(Math.floor(Date.now() / 1000)));
+}
+// 쇼핑몰형 카테고리 개편(2026-09-18) — 슬러그·제품명으로 한 번만 재분류
+if (!db.prepare("SELECT value FROM settings WHERE key='cat_shop_20260918'").get()) {
+  db.exec("UPDATE products SET category='baby' WHERE category IN ('gift','jewelry') AND (slug LIKE 'baby-%' OR name LIKE '%돌반지%' OR name LIKE '%돌팔찌%' OR name LIKE '%아기%')");
+  db.exec("UPDATE products SET category='women' WHERE category='jewelry' AND metal='gold' AND purity LIKE '999%'");
+  db.exec("UPDATE products SET category='gift' WHERE category='jewelry' AND (name LIKE '%열쇠%' OR name LIKE '%금수저%' OR name LIKE '%코인%' OR name LIKE '%기념%')");
+  db.prepare("INSERT INTO settings (key,value) VALUES ('cat_shop_20260918',?)").run(String(Math.floor(Date.now() / 1000)));
+}            // 22K는 표시하지 않음
 
 const getStmt = db.prepare('SELECT value FROM settings WHERE key=?');
 const setStmt = db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');

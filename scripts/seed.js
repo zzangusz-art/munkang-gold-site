@@ -36,18 +36,21 @@ function seedProducts() {
   return n;
 }
 // 운영 DB에 다이아 주얼리(모이사나이트·랩다이아 옵션)를 한 번만 추가 — 관리자가 지운 제품은 다시 넣지 않는다 (2026-09-16)
-function seedDiamondJewelry() {
+function seedDiamondJewelry() { return seedOnce('seed_diamond_20260916', p => p.diamond); }
+// 순금 남성 라인업 1회 추가(2026-09-18)
+function seedMensLine() { return seedOnce('seed_men_20260918', p => p.men_seed); }
+function seedOnce(flag, filter) {
   const { getSetting, setSetting } = require('../db');
-  if (getSetting('seed_diamond_20260916')) return 0;
+  if (getSetting(flag)) return 0;
   const ts = now(); let n = 0;
   const ins = db.prepare(PRODUCT_INS);
   const base = (db.prepare("SELECT MAX(sort) m FROM products").get().m || 0) + 1;
   const fill = db.prepare("UPDATE products SET karat_option=1, stone_json=?, updated_at=? WHERE slug=? AND (stone_json IS NULL OR stone_json IN ('','[]'))");
-  J('products.json').filter(p => p.diamond).forEach((p, i) => {
+  J('products.json').filter(filter).forEach((p, i) => {
     const args = productArgs(p, base + i, ts);
     n += ins.run(...args).changes || fill.run(args[20], ts, p.slug).changes;  // 이미 있는 같은 제품은 옵션만 채운다
   });
-  setSetting('seed_diamond_20260916', String(ts));
+  setSetting(flag, String(ts));
   return n;
 }
 function seedTopics(force) {
@@ -78,7 +81,7 @@ function seedNotice() {
   return 1;
 }
 function seedIfEmpty(force = false) {
-  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
+  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
   if (Object.values(r).some(Boolean)) console.log('[seed]', JSON.stringify(r));
   return r;
 }

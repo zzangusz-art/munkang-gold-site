@@ -67,6 +67,14 @@ router.get('/', (req, res) => {
   const videos = db.prepare('SELECT * FROM videos ORDER BY sort, id DESC LIMIT 3').all();
   const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 6').all();
   const featured = db.prepare("SELECT * FROM products WHERE status='published' AND featured=1 ORDER BY sort, id LIMIT 8").all();
+  const fresh = db.prepare("SELECT * FROM products WHERE status='published' ORDER BY created_at DESC, id DESC LIMIT 4").all();
+  const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));
+  counts.today = db.prepare("SELECT COUNT(*) c FROM products WHERE status='published' AND ready_today=1").get().c;
+  counts.best = db.prepare("SELECT COUNT(*) c FROM products WHERE status='published' AND featured=1").get().c;
+  const CAT_TILES = [['today', '오늘출발'], ['best', 'BEST'], ['goldbar', '골드바'], ['silverbar', '실버바'], ['women', '순금 여성'], ['men', '순금 남성'], ['baby', '순금 아기'], ['gift', '순금 기념품'], ['jewelry', '주얼리(14K·18K)']];
+  const byCode = Object.fromEntries(st.rows.map(r => [r.code, r]));
+  const LINE = [['au999', '24K금시세', '24K Gold / 3.75g'], ['au750', '18K금시세', '18K Gold / 3.75g'], ['au585', '14K금시세', '14K Gold / 3.75g'], ['pt999', '백금시세', 'Platinum / 3.75g'], ['ag999', '순은시세', 'Silver / 3.75g']]
+    .map(([code, head, sub]) => ({ head, sub, ...(byCode[code] || {}) }));
   const hist = g ? quotes.history(g.id, 30) : [];
   const faqs = FAQ.slice(0, 6);
   // 계산기 옆 유튜브 롤링 — 채널 RSS로 자동 동기화된 최신 영상
@@ -80,7 +88,7 @@ router.get('/', (req, res) => {
     <div class="hero-visual"><span class="hv-cue" aria-hidden="true"><i></i>아래로 내리면 오늘 시세</span></div>
     <div class="hero-main">
     <div class="hero-copy">
-      <p class="eyebrow">종로3가역 11번 출구 앞 금·은 매입·판매</p>
+      <p class="eyebrow">종로3가역 1호선 2번 출구 앞 금·은 매입·판매</p>
       <h1>오늘 금 한 돈,<br><span class="hl">${g ? fmtNum(g.buy) + '원' : '당일 시세'}</span>에 사드립니다</h1>
       <p class="lead">문강금은은 종로3가에 위치한 금거래소입니다. 순금·18K·14K·백금·은 시세를 매일 공개하고, 골드바, 실버바, 주얼리, 돌반지를 당일 시세로 판매합니다.</p>
       <div class="hero-actions"><a class="btn btn-gold lg" href="/calculator">매입가 계산하기</a><a class="btn btn-ghost lg" href="/apply">매입·구매 예약</a></div>
@@ -100,62 +108,54 @@ router.get('/', (req, res) => {
   <div class="ticker" aria-label="오늘의 시세 흐름"><div class="ticker-track" id="tickerTrack">${tickerHtml}${tickerHtml}</div></div>
 </section>
 
-<section class="section calc-sec" id="calc">
-  <div class="wrap calc-grid">
-    <div class="calc-side reveal"><h2>오늘 시세로 계산하는 예상 매입가</h2><p class="sub">순도와 중량을 고르면 지금 시세로 예상 매입가가 계산됩니다. 실제 금액은 감정 결과(순도, 중량, 부속품 제외)에 따라 확정됩니다.</p>
-      <ul class="checks"><li>18K는 순금 매입가의 73.5%, 14K는 57%로 자동 계산</li><li>돈(3.75g)과 g 단위 모두 입력 가능</li><li>계산한 금액 그대로 매입 예약</li></ul>
-      ${ytRoll}</div>
-    <div class="calc-card reveal" id="calc-widget" data-quotes='${attr(JSON.stringify(st.rows.map(r => ({ code: r.code, name: r.name, purity: r.purity, buy: r.buy, metal: r.metal }))))}'>
-      <div class="calc-row"><label>순도</label><div class="chips" id="calcPurity">${st.rows.map((r, i) => `<button class="chip${i === 0 ? ' active' : ''}" data-code="${attr(r.code)}">${esc(r.name)}</button>`).join('')}</div></div>
-      <div class="calc-row"><label for="calcW">중량</label><div class="calc-input"><input id="calcW" type="number" inputmode="decimal" min="0" step="0.01" value="3.75"><span class="unit-toggle" role="group"><button class="ut active" data-u="g">g</button><button class="ut" data-u="don">돈</button></span></div><input id="calcRange" type="range" min="0" max="100" step="0.25" value="3.75" aria-label="중량 슬라이더"></div>
-      <div class="calc-result"><span class="cr-label">예상 매입가</span><b id="calcTotal">0원</b><span class="cr-sub" id="calcSub"></span></div>
-      <div class="calc-actions"><a class="btn btn-gold" id="calcApply" href="/apply?kind=sell">이 금액으로 매입 예약</a><a class="btn btn-kakao" href="${attr(s.kakao_channel)}" target="_blank" rel="noopener">카카오톡 문의</a></div>
-      <p class="note">${esc(st.updatedText)} 시세 기준 · ${esc(s.quote_note)}</p>
+<section class="section lineup-sec">
+  <div class="wrap lineup-grid">
+    <div class="lu-side reveal">
+      <p class="eyebrow">${esc(s.site_name)}</p>
+      <h2>금 시세 라인업</h2>
+      <p class="lu-unit">단위 : 3.75g(1돈) 기준<br>${esc(st.updatedText)} 기준</p>
+      <ul class="lu-notes"><li>자사 골드바·실버바 판매 기준</li><li>내가 살 때 금액은 부가세 포함</li><li>타사 제품은 순도 감정 후 매입가 확정</li></ul>
+      <a class="btn btn-gold" href="/price">전체 시세표 보기</a>
+    </div>
+    <div class="lu-table-wrap reveal">
+      <table class="lineup">
+        <thead><tr><th><span class="sr">구분</span></th>${LINE.map(l => `<th><b>${l.head}</b><small>${l.sub}</small></th>`).join('')}</tr></thead>
+        <tbody>
+          <tr><th class="lu-rh">내가 살 때<small>(VAT 포함)</small></th>${LINE.map(l => `<td>${l.sell ? `<b>${fmtNum(l.sell)}</b>${chg(l.diff, l.pct)}` : '<span class="lu-na">제품 시세 적용</span>'}</td>`).join('')}</tr>
+          <tr><th class="lu-rh">내가 팔 때</th>${LINE.map(l => `<td>${l.buy ? `<b>${fmtNum(l.buy)}</b>${chg(l.diff, l.pct)}` : '<span class="lu-na">문의</span>'}</td>`).join('')}</tr>
+        </tbody>
+      </table>
+      <p class="note">${esc(s.quote_note)}</p>
     </div>
   </div>
+  ${ytRoll ? `<div class="wrap lu-yt">${ytRoll}</div>` : ''}
   ${ytModal}
 </section>
 
-<section class="section services">
+<section class="section lineup-products">
   <div class="wrap">
-    <div class="sec-head center"><h2>문강금은에서 도와드리는 일</h2><p class="sub">금·은을 파실 때는 정밀 감정과 현장 현금, 사실 때는 당일 시세 연동 가격. 종로3가 매장에서 한 번에 처리합니다.</p></div>
-    <div class="svc-grid">
-      ${[['01', '금·은 매입', '순금, 18K, 14K, 백금, 은 제품을 순도와 중량 기준으로 매입합니다. 끊어지거나 찌그러진 것도 괜찮습니다.', '/sell'], ['02', '순도 감정', '고객이 보는 앞에서 시금석과 시약으로 순도를 확인합니다. 감정만 받으셔도 됩니다.', '/guide/appraisal'], ['03', '골드바·실버바 판매', '골드바는 1g부터 100g까지 당일 시세로 판매하고 보증서를 드립니다. 되파실 때도 당일 시세로 매입합니다.', '/buy'], ['04', '주얼리·돌반지', '14K·18K 주얼리와 돌반지, 금수저, 행운의 열쇠를 준비해 두었습니다. 각인과 케이스 포장도 해드립니다.', '/products?category=jewelry'], ['05', '리세팅·투자 상담', '쓰지 않는 금으로 새 반지를 만들거나 골드바를 나눠 모으는 방법을 상담해 드립니다.', '/apply?kind=consult']]
-        .map(([ic, t, d, h]) => `<a class="svc reveal" href="${h}"><span class="svc-ic">${ic}</span><h3>${t}</h3><p>${d}</p><span class="more">자세히 →</span></a>`).join('')}
-    </div>
+    <div class="sec-head center"><h2>상품 라인업</h2><p class="sub">골드바·실버바부터 순금 주얼리와 기념품까지, 당일 시세로 계산한 가격을 그대로 보여 드립니다.</p></div>
+    <div class="cat-tiles">${CAT_TILES.map(([k, label]) => `<a class="cat-tile reveal" href="/products?category=${k}"><b>${label}</b><span class="ct-n">${counts[k] || 0}개</span></a>`).join('')}</div>
+    <div class="pgrid">${featured.map(productCard).join('') || '<p class="note">제품을 준비 중입니다.</p>'}</div>
+    <p class="center"><a class="btn btn-ghost" href="/products">전체 제품 보기</a></p>
   </div>
 </section>
+
+${fresh.length ? `<section class="section new-products">
+  <div class="wrap">
+    <div class="sec-head"><div><h2>신규 상품</h2><p class="sub">새로 등록된 제품입니다.</p></div><a class="link" href="/products">전체 제품 →</a></div>
+    <div class="pgrid">${fresh.map(productCard).join('')}</div>
+  </div>
+</section>` : ''}
+
+${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><h2>고객 후기</h2></div><a class="link" href="/reviews">후기 더 보기 →</a></div><div class="rv-grid">${reviews.map(r => `<blockquote class="rv reveal"><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(r.text)}</p><footer>${esc(r.name)} · ${esc(r.kind || '')}</footer></blockquote>`).join('')}</div></div></section>` : ''}
 
 <section class="section process">
   <div class="wrap">
     <div class="sec-head center"><h2>금을 팔 때는 이렇게 진행됩니다</h2></div>
-    <ol class="steps-row">${[['매장 방문', '종로3가 매장으로 오세요. 신분증만 챙겨 오시면 됩니다.'], ['중량 측정', '고객 앞에서 전자저울로 순중량을 잽니다. 보석과 부속품은 뺍니다.'], ['순도 감정', '시금석에 긁어 시약 반응으로 순도를 확인하고 결과를 함께 봅니다.'], ['금액 안내', '당일 시세와 순도, 중량으로 금액을 알려드립니다. 마음에 들지 않으면 팔지 않으셔도 됩니다.'], ['현금 지급', '동의하시면 그 자리에서 현금으로 드립니다. 계좌이체는 하지 않습니다.']].map(([t, d], i) => `<li class="step reveal"><span class="st-n">${i + 1}</span><h3>${t}</h3><p>${d}</p></li>`).join('')}</ol>
+    <ol class="steps-row">${[['매장 방문', '종로3가 매장으로 오세요. 신분증만 챙겨 오시면 됩니다.'], ['중량 측정', '고객 앞에서 전자저울로 순중량을 잽니다. 보석과 부속품은 뺍니다.'], ['순도 감정', '시금석에 긁어 시약 반응으로 순도를 확인하고 결과를 함께 봅니다.'], ['금액 안내', '당일 시세와 순도, 중량으로 금액을 알려드립니다. 마음에 들지 않으면 팔지 않으셔도 됩니다.'], ['매입금 즉시 수령', '동의하시면 매입금을 그 자리에서 바로 받으실 수 있습니다.']].map(([t, d], i) => `<li class="step reveal"><span class="st-n">${i + 1}</span><h3>${t}</h3><p>${d}</p></li>`).join('')}</ol>
   </div>
 </section>
-
-<section class="section products-hl">
-  <div class="wrap">
-    <div class="sec-head"><div><h2>오늘 시세로 본 제품 가격</h2></div><a class="link" href="/products">전체 제품 →</a></div>
-    <div class="pgrid">${featured.map(productCard).join('')}</div>
-    <p class="note">가격은 ${esc(st.updatedText)} 고시 시세에 연동되어 자동 계산되며 결제 시점 매장 고시가가 최종 적용됩니다. 실물 귀금속 구매 시 부가세 10% 별도이며, 부가세 별도로 진행을 원하시면 매장 방문을 부탁드립니다.</p>
-  </div>
-</section>
-
-<section class="section why">
-  <div class="wrap why-grid">
-    <div class="reveal">
-      <h2>시세를 숨기지 않는 금은방</h2>
-      <p>매입가와 판매가를 홈페이지에 매일 공개하고, 감정은 고객이 보는 앞에서 진행하며, 제시 금액이 마음에 들지 않으면 팔지 않으셔도 됩니다. 종로3가 귀금속 거리에서 "신뢰"를 원칙으로 검증된 제품과 합리적인 가격을 지킵니다.</p>
-      <ul class="checks"><li>매입가와 판매가를 매일 공개</li><li>고객이 보는 앞에서 30분 안에 감정</li><li>현장에서 현금으로 지급</li><li>문강금은에서 산 골드바는 당일 시세로 재매입</li></ul>
-      <a class="btn btn-dark" href="/about">매장 소개 보기</a>
-    </div>
-    <div class="stat-cards reveal">
-      ${[[g ? fmtNum(g.buy) : '-', '순금 매입가(원/돈)'], ['30분', '이내 정밀 감정'], ['연중무휴', `${s.hours_open}–${s.hours_close}`], ['11번 출구', '종로3가역 바로 앞']].map(([b, t]) => `<div class="stat-card"><b>${b}</b><span>${t}</span></div>`).join('')}
-    </div>
-  </div>
-</section>
-
-${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><h2>고객 후기</h2></div><a class="link" href="/reviews">후기 더 보기 →</a></div><div class="rv-grid">${reviews.map(r => `<blockquote class="rv reveal"><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(r.text)}</p><footer>${esc(r.name)} · ${esc(r.kind || '')}</footer></blockquote>`).join('')}</div></div></section>` : ''}
 
 <section class="section posts">
   <div class="wrap">
@@ -166,8 +166,8 @@ ${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div 
 
 
 <section class="section kw-sec"><div class="wrap">
-  <div class="sec-head center"><h2>종로에서 금거래소, 금은방을 찾으신다면</h2><p class="sub">종로3가역 11번 출구 앞 문강금은은 종로 금매입, 종로 골드바, 종로 돌반지, 종로 금반지·금팔찌·금목걸이까지 한 매장에서 시세 공개·감정·현금 지급으로 처리합니다.</p></div>
-  <div class="kw-grid">${[['종로금매입', '종로 금매입', '순금·18K·14K·은 형태 무관 매입, 30분 감정, 현장 현금'], ['종로금거래소', '종로 금거래소', '매입가·판매가 매일 공개, 국제 시세 환산 참고'], ['종로골드바', '종로 골드바', '1g~100g 당일 시세 연동, 보증서, 당일 재매입'], ['종로돌반지', '종로 돌반지', '반돈·한돈 순금 돌반지, 각인·케이스'], ['종로금은방', '종로 금은방', '종로3가역 11번 출구 앞, 연중무휴 10~20시'], ['종로금반지', '종로 금반지·팔찌·목걸이', '순금 주얼리 시세 연동 가격, 리세팅']].map(([k, t, d]) => `<a class="kw-card reveal" href="/search/${encodeURIComponent(k)}"><b>${t}</b><span>${d}</span></a>`).join('')}</div>
+  <div class="sec-head center"><h2>종로에서 금거래소, 금은방을 찾으신다면</h2><p class="sub">종로3가역 1호선 2번 출구 앞 문강금은은 종로 금매입, 종로 골드바, 종로 돌반지, 종로 금반지·금팔찌·금목걸이까지 한 매장에서 시세 공개·감정·현금 지급으로 처리합니다.</p></div>
+  <div class="kw-grid">${[['종로금매입', '종로 금매입', '순금·18K·14K·은 형태 무관 매입, 30분 감정, 현장 현금'], ['종로금거래소', '종로 금거래소', '매입가·판매가 매일 공개, 국제 시세 환산 참고'], ['종로골드바', '종로 골드바', '1g~100g 당일 시세 연동, 보증서, 당일 재매입'], ['종로돌반지', '종로 돌반지', '반돈·한돈 순금 돌반지, 각인·케이스'], ['종로금은방', '종로 금은방', '종로3가역 1호선 2번 출구 앞, 연중무휴 10~20시'], ['종로금반지', '종로 금반지·팔찌·목걸이', '순금 주얼리 시세 연동 가격, 리세팅']].map(([k, t, d]) => `<a class="kw-card reveal" href="/search/${encodeURIComponent(k)}"><b>${t}</b><span>${d}</span></a>`).join('')}</div>
 </div></section>
 
 <section class="section faq-sec"><div class="wrap">
@@ -194,7 +194,7 @@ ${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div 
 
   res.send(page({
     title: `문강금은 | 종로3가 금거래소·금은방 — 종로 금매입·골드바·돌반지, 오늘 순금 ${g ? fmtNum(g.buy) + '원/돈' : ''}`,
-    description: `종로 금거래소·종로3가 금은방 문강금은(종로3가역 11번 출구 앞). 종로 금매입·골드바·돌반지·금반지. 오늘 순금 24K 매입가 ${g ? fmtNum(g.buy) + '원/돈(' + fmtNum(g.buyG) + '원/g)' : ''}, 18K·14K·백금·은 시세 매일 공개. 감정 후 현장 현금 지급, 골드바·실버바·주얼리·돌반지 판매. ${s.hours}.`,
+    description: `종로 금거래소·종로3가 금은방 문강금은(종로3가역 1호선 2번 출구 앞). 종로 금매입·골드바·돌반지·금반지. 오늘 순금 24K 매입가 ${g ? fmtNum(g.buy) + '원/돈(' + fmtNum(g.buyG) + '원/g)' : ''}, 18K·14K·백금·은 시세 매일 공개. 감정 후 현장 현금 지급, 골드바·실버바·주얼리·돌반지 판매. ${s.hours}.`,
     path: '/', body, bodyClass: 'home',
     extraHead: '<link rel="preload" as="image" href="/img/hero.jpg" media="(min-width:901px)"><link rel="preload" as="image" href="/img/hero-mobile.jpg" media="(max-width:900px)">',
     jsonld: [faqLd(faqs), datasetLd(st.rows, st.lastUpdated)],
@@ -211,12 +211,12 @@ const METAL_META = {
 function priceExplain(metal) {
   return `<section class="section explain"><div class="wrap narrow">
 <h2>${metal === 'gold' ? '금' : metal === 'silver' ? '은' : '백금'} 시세는 어떻게 읽어야 하나요?</h2>
-<p><strong>매입가</strong>는 고객이 파실 때 문강금은이 드리는 금액, <strong>판매가</strong>는 골드바·실버바를 구매하실 때 기준가(부가세 별도)입니다. 표의 단위는 1돈(3.75g)이며 g 단위는 버튼으로 전환할 수 있습니다. <strong>전일 대비</strong>는 직전 고시가와의 차이입니다.</p>
+<p><strong>매입가</strong>는 고객이 파실 때 문강금은이 드리는 금액, <strong>판매가</strong>는 골드바·실버바를 구매하실 때 기준가(부가세 포함)입니다. 표의 단위는 1돈(3.75g)이며 g 단위는 버튼으로 전환할 수 있습니다. <strong>전일 대비</strong>는 직전 고시가와의 차이입니다.</p>
 <h2>시세가 오르내리는 이유는 무엇인가요?</h2>
 <ul><li><strong>국제 시세</strong>: 달러/트로이온스 기준 국제 가격이 기본. 미국 금리·달러·중앙은행 매입·지정학 요인이 움직입니다.</li><li><strong>환율</strong>: 원/달러 환율이 오르면 국제 시세가 그대로여도 국내 가격이 오릅니다.</li><li><strong>국내 수급</strong>: 돌·결혼 시즌 실물 수요, 정제·유통 비용이 스프레드에 반영됩니다.</li></ul>
 <h2>이 시세로 얼마를 받을 수 있나요?</h2>
 <p>순도별 매입가 × 순중량이 기준입니다. 18K 매입가는 순금 매입가의 73.5%, 14K는 57%이며 보석·부속품 무게는 제외됩니다. <a href="/calculator">매입가 계산기</a>에서 순도와 중량을 넣으면 예상 금액이 바로 나오고, 정확한 금액은 매장 감정 후 확정됩니다.</p>
-${faqHtml([{ q: '시세는 하루에 몇 번 갱신되나요?', a: '보통 오전에 고시하고 국제 시세·환율 변동이 크면 오후에 다시 고시합니다. 페이지의 갱신 시각이 적용 기준입니다.' }, { q: '표의 가격에 부가세가 포함되나요?', a: '매입가는 고객이 받는 금액 그대로이며, 판매가는 부가세 10% 별도입니다.' }, { q: '온라인 시세와 왜 다른가요?', a: '온라인 시세는 대부분 국제 환산가 또는 1g 기준입니다. 매장 고시가는 정제·유통 비용이 반영된 실거래 기준이며, 돈·g 단위를 맞춰 비교하세요.' }])}
+${faqHtml([{ q: '시세는 하루에 몇 번 갱신되나요?', a: '보통 오전에 고시하고 국제 시세·환율 변동이 크면 오후에 다시 고시합니다. 페이지의 갱신 시각이 적용 기준입니다.' }, { q: '표의 가격에 부가세가 포함되나요?', a: '매입가는 고객이 받는 금액 그대로이며, 홈페이지에 표시되는 판매가와 제품 가격은 부가세가 포함된 금액입니다.' }, { q: '온라인 시세와 왜 다른가요?', a: '온라인 시세는 대부분 국제 환산가 또는 1g 기준입니다. 매장 고시가는 정제·유통 비용이 반영된 실거래 기준이며, 돈·g 단위를 맞춰 비교하세요.' }])}
 </div></section>`;
 }
 function pricePage(req, res, metal) {
@@ -240,7 +240,7 @@ function pricePage(req, res, metal) {
   </div>
 </section>
 ${priceExplain(metal || 'gold')}`;
-  const ld = [datasetLd(all, st.lastUpdated), faqLd([{ q: '시세는 하루에 몇 번 갱신되나요?', a: '보통 오전에 고시하고 변동이 크면 오후에 다시 고시합니다. 페이지의 갱신 시각이 기준입니다.' }, { q: '표의 가격에 부가세가 포함되나요?', a: '매입가는 고객이 받는 금액 그대로이며, 판매가는 부가세 10% 별도입니다.' }])];
+  const ld = [datasetLd(all, st.lastUpdated), faqLd([{ q: '시세는 하루에 몇 번 갱신되나요?', a: '보통 오전에 고시하고 변동이 크면 오후에 다시 고시합니다. 페이지의 갱신 시각이 기준입니다.' }, { q: '표의 가격에 부가세가 포함되나요?', a: '매입가는 고객이 받는 금액 그대로이며, 홈페이지에 표시되는 판매가와 제품 가격은 부가세가 포함된 금액입니다.' }])];
   res.send(page({ title: metal ? `${meta.h1.split(' — ')[0]} ${st.updatedText} — ${g ? esc(g.name) + ' 매입 ' + fmtNum(g.buy) + '원/돈' : ''}` : `오늘의 금시세 ${st.updatedText} — 순금 매입 ${st.gold ? fmtNum(st.gold.buy) + '원/돈' : ''} · 18K·14K·은·백금 매입가/판매가`, description: metal ? meta.desc(g, st.updatedText) : `오늘의 금·은·백금 시세표 ${st.updatedText} 갱신. 순금 24K 매입 ${st.gold ? fmtNum(st.gold.buy) + '원/돈(' + fmtNum(st.gold.buyG) + '원/g)' : ''}, 18K·14K·백금·은 매입가와 골드바·실버바 판매가, 전일 대비, 90일 추이, 국제 금시세 환산. 종로3가 문강금은.`, path: metal ? `/price/${metal}` : '/price', body, breadcrumbs: [{ name: '오늘의 금시세', href: '/price' }, ...(metal ? [{ name: meta.kw, href: `/price/${metal}` }] : [])], jsonld: ld, dateModified: st.lastUpdated ? isoFromTs(st.lastUpdated) : undefined, bodyClass: 'market-page' }));
 }
 router.get('/price', (req, res) => pricePage(req, res, ''));
@@ -267,13 +267,49 @@ router.get('/calculator', (req, res) => {
   res.send(page({ title: `금 매입가 계산기 — 순도(24K·18K·14K)·중량(g/돈)으로 예상 금액 (순금 ${st.gold ? fmtNum(st.gold.buy) + '원/돈' : ''})`, description: `순도와 중량만 입력하면 오늘 시세로 예상 매입가를 계산합니다. 순금 ${st.gold ? fmtNum(st.gold.buyG) + '원/g' : ''}, 18K·14K·백금·은 매입가, 돈·g 환산, 감정 시 제외 항목. 종로3가 문강금은.`, path: '/calculator', body, breadcrumbs: [{ name: '오늘의 금시세', href: '/price' }, { name: '매입가 계산기', href: '/calculator' }], jsonld: [faqLd(faqs), { '@context': 'https://schema.org', '@type': 'WebApplication', name: '문강금은 금 매입가 계산기', url: settings.siteUrl() + '/calculator', applicationCategory: 'FinanceApplication', operatingSystem: 'Web', offers: { '@type': 'Offer', price: 0, priceCurrency: 'KRW' } }], quoteBar: quoteBar(), bodyClass: 'calc-page' }));
 });
 
+// ── 바로 구매(주문서) ──
+router.get('/order', (req, res, next) => {
+  const p = db.prepare("SELECT * FROM products WHERE slug=? AND status='published'").get(String(req.query.product || '')); if (!p) return next();
+  const s = settings.all(); const st = quotes.stats();
+  const stones = quotes.stoneOptions(p); const karats = p.karat_option ? ['14k', '18k'] : ['14k'];
+  const opts = [];
+  for (const k of karats) for (let i = 0; i < Math.max(1, stones.length); i++) {
+    const pr = quotes.productPrice(p, { karat: k, stoneAdd: stones[i] ? stones[i].add : 0 });
+    const label = [p.karat_option ? (k === '18k' ? '18K' : '14K') : '', stones[i] ? stones[i].name : ''].filter(Boolean).join(' / ');
+    opts.push({ label: label || '기본', price: pr.price, weight: pr.weight_g });
+  }
+  const first = opts[0] || { price: quotes.productPrice(p).price, label: '기본' };
+  const body = `
+<section class="page-head"><div class="wrap"><p class="eyebrow">주문서</p><h1>${esc(p.name)} 구매</h1><p class="bluf">아래 정보를 남겨 주시면 재고와 수령 방법을 확인해 연락드립니다. 표시 금액은 ${esc(st.updatedText)} 시세 기준이며 부가세가 포함된 금액입니다.</p></div></section>
+<section class="section"><div class="wrap grid2">
+  <form class="inq-form big reveal" method="post" action="/api/inquiry" data-ajax>
+    <input type="hidden" name="kind" value="buy">
+    <div class="order-sum"><div class="os-img ${attr(p.metal)}">${p.image ? `<img src="${attr(p.image)}" alt="${attr(p.name)}">` : `<span class="pc-glyph">${p.metal === 'silver' ? 'Ag' : 'Au'}</span>`}</div>
+      <div><b>${esc(p.name)}</b><span>${esc(p.purity || '')} · ${p.weight_g}g</span><b class="os-price" id="oPrice">${first.price ? fmtNum(first.price) + '원' : '시세 문의'}</b><span class="note">부가세 포함</span></div></div>
+    ${opts.length > 1 ? `<label>옵션 <select name="option" id="oOpt">${opts.map((o, i) => `<option value="${attr(o.label)}" data-price="${o.price || 0}"${i === 0 ? ' selected' : ''}>${esc(o.label)}${o.price ? ` — ${fmtNum(o.price)}원` : ''}</option>`).join('')}</select></label>` : `<input type="hidden" name="option" value="${attr(first.label)}">`}
+    <div class="row"><label>수량 <input name="weight" id="oQty" type="number" min="1" max="20" value="1"></label>
+      <label>수령 방법 <select name="receive"><option value="매장 수령">매장 수령(종로3가)</option><option value="택배 배송">택배 배송(선입금 후 발송)</option></select></label></div>
+    <div class="row"><label>성함 <input name="name" required maxlength="40"></label><label>연락처 <input name="phone" required maxlength="20" inputmode="tel" placeholder="010-0000-0000"></label></div>
+    <label>요청 사항 <textarea name="message" rows="4" maxlength="1000" placeholder="방문 희망 일시, 각인 문구, 배송지 등"></textarea></label>
+    <input type="hidden" name="item" id="oItem" value="${attr(p.name)}">
+    <input type="text" name="website" class="sr" tabindex="-1" autocomplete="off">
+    <label class="agree"><input type="checkbox" name="agree" value="1" required> <a href="/privacy" target="_blank">개인정보 수집·이용</a>에 동의합니다. (주문 확인 목적, 1년 보관)</label>
+    <button class="btn btn-gold block lg" type="submit">주문서 보내기</button><p class="form-msg" aria-live="polite"></p>
+    <p class="note">주문서를 보내시면 재고와 최종 금액을 확인해 연락드립니다. 결제는 매장 방문 또는 안내드리는 계좌로 진행합니다.</p>
+  </form>
+  <aside class="side-col"><div class="side-card"><h3>주문 절차</h3><ol class="side-steps"><li>주문서 접수</li><li>재고·금액 확인 연락</li><li>결제(매장 또는 입금)</li><li>매장 수령 또는 택배 발송</li></ol></div>
+  <div class="side-card"><h3>문의</h3><p>전화 <a href="tel:${attr(s.phone)}">${esc(s.phone)}</a><br>매일 ${esc(s.hours_open)}–${esc(s.hours_close)}</p><a class="btn btn-ghost block" href="${attr(s.kakao_channel)}" target="_blank" rel="noopener">카카오톡 문의</a></div></aside>
+</div></section>`;
+  res.send(page({ title: `${p.name} 구매 주문서 — ${first.price ? fmtNum(first.price) + '원' : '시세 연동'} (부가세 포함)`, description: `${p.name} 구매 주문서. 옵션·수량·수령 방법을 남기면 재고와 금액을 확인해 연락드립니다. 종로3가 문강금은.`, path: '/order', body, breadcrumbs: [{ name: '제품', href: '/products' }, { name: p.name, href: `/products/${p.slug}` }, { name: '구매', href: '/order' }], noindex: true, quoteBar: quoteBar() }));
+});
+
 // ── 제품 목록 ──
 router.get('/products', (req, res) => {
   const cat = TAB_LABEL[req.query.category] ? req.query.category : ''; const q = String(req.query.q || '').trim().slice(0, 40);
   let sql = "SELECT * FROM products WHERE status='published'"; const args = [];
   if (cat === 'today') sql += ' AND ready_today=1';
   else if (cat === 'best') sql += ' AND featured=1';
-  else if (cat) { sql += ' AND category=?'; args.push(cat); } if (q) { sql += ' AND name LIKE ?'; args.push(`%${q}%`); }
+  else if (cat) { sql += ' AND category=?'; args.push(cat); } if (q) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${q}%`, `%${q}%`); }
   sql += ' ORDER BY featured DESC, sort, id';
   const rows = db.prepare(sql).all(...args); const st = quotes.stats(); const site = settings.siteUrl();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));
@@ -286,8 +322,8 @@ router.get('/products', (req, res) => {
   <div class="market-controls"><input type="search" id="pFilter" placeholder="제품명 검색" aria-label="제품 검색" value="${attr(q)}"><select id="pSort" aria-label="정렬"><option value="featured">추천순</option><option value="price-asc">가격 낮은순</option><option value="price-desc">가격 높은순</option><option value="weight">중량순</option></select></div>
   <div class="pgrid" id="pGrid">${rows.map(productCard).join('') || '<p class="note">등록된 제품이 없습니다.</p>'}</div>
 </div></section>
-<section class="section explain"><div class="wrap narrow"><h2>제품 가격은 어떻게 정해지나요?</h2><p><strong>가격 = (당일 판매 시세 원/g × 순중량) + 공임</strong>에 소정의 마진이 더해지며, 페이지마다 적용 시세 기준시각을 표시합니다. 시세가 바뀌면 가격도 자동으로 바뀝니다.</p><h2>되팔 때는 얼마를 받나요?</h2><p>되파는 시점의 문강금은 매입 시세(원/돈) × 순중량입니다. 보증서가 있으면 감정이 빠릅니다.</p><h2>구매는 어떻게 하나요?</h2><p>매장 방문 시 당일 시세로 바로 구매·수령하실 수 있고, <a href="/apply?kind=buy">구매 예약</a>에 제품·수량을 남기시면 준비해 두었다가 방문 시 드립니다. 온라인 결제·배송은 준비 중입니다.</p></div></section>`;
-  const KWT = { today: '오늘 출발 제품', best: '베스트 제품', goldbar: '종로 골드바 가격', silverbar: '종로 실버바 가격', jewelry: '종로 금반지·금팔찌·금목걸이 가격', gift: '종로 돌반지·순금 기념품 가격' };
+<section class="section explain"><div class="wrap narrow"><h2>제품 가격은 어떻게 정해지나요?</h2><p><strong>가격 = (당일 판매 시세 원/g × 순중량) + 공임</strong>이며, 표시 가격은 부가세가 포함된 금액입니다. 페이지마다 적용 시세 기준시각을 표시하고, 시세가 바뀌면 가격도 자동으로 바뀝니다.</p><h2>되팔 때는 얼마를 받나요?</h2><p>되파는 시점의 문강금은 매입 시세(원/돈) × 순중량입니다.</p><h2>구매는 어떻게 하나요?</h2><p>매장 방문 시 당일 시세로 바로 구매·수령하실 수 있고, <a href="/apply?kind=buy">구매 예약</a>에 제품·수량을 남기시면 준비해 두었다가 방문 시 드립니다. 온라인 결제·배송은 준비 중입니다.</p></div></section>`;
+  const KWT = { today: '오늘 출발 제품', best: '베스트 제품', goldbar: '종로 골드바 가격', silverbar: '종로 실버바 가격', women: '순금 여성 주얼리 가격', men: '순금 남성 주얼리 가격', baby: '종로 돌반지·순금 아기 선물 가격', gift: '순금 기념품·행운의 열쇠 가격', jewelry: '14K·18K 주얼리·다이아 가격' };
   res.send(page({ title: `${cat ? KWT[cat] : '주얼리·골드바·실버바·순금 기념품 가격'} — 당일 시세 연동 ${rows.length}개 제품 | 종로3가 금은방`, description: `${cat ? tabLabel(cat) : '주얼리·골드바·실버바·돌반지·순금 기념품'} ${rows.length}개 제품 가격. ${st.updatedText} 시세 연동 자동 계산, 적용 기준시각 표기, 부가세 별도, 되팔 때 당일 매입. 종로3가 문강금은.`, path: '/products', body, breadcrumbs: [{ name: '제품', href: '/products' }, ...(cat ? [{ name: tabLabel(cat), href: `/products?category=${cat}` }] : [])], quoteBar: quoteBar(), jsonld: [{ '@context': 'https://schema.org', '@type': 'ItemList', name: cat ? tabLabel(cat) : '문강금은 제품', numberOfItems: rows.length, itemListElement: rows.slice(0, 50).map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, url: `${site}/products/${encodeURIComponent(p.slug)}` })) }] }));
 });
 
@@ -311,7 +347,7 @@ router.get('/products/:slug', (req, res, next) => {
   const hasOpts = p.karat_option || stones.length > 0;
   const summary = p.summary || `${p.name} — 순도 ${p.purity}, ${p.weight_g}g. 문강금은 당일 시세 연동 가격.`;
   const bodyHtml = p.body_html || `<h2>${esc(p.name)}은(는) 어떤 제품인가요?</h2><p>상세 설명은 준비 중입니다. 가격은 당일 시세에 연동되며 아래 표와 상담을 통해 확인하실 수 있습니다.</p>`;
-  const specs = [['현재 가격', pr.price ? `<b class="big" id="pPrice">${fmtNum(pr.price)}원</b> <small>부가세 별도${p.category === 'goldbar' ? ' · 부가세 별도로 진행을 원하시면 매장 방문 부탁드립니다' : ''}</small>` : '시세 문의'], ['적용 시세', pr.basis ? `${esc(pr.basis)} 고시 · ${pr.quote ? esc(pr.quote.name) + ' 판매 ' + fmtNum(pr.quote.sell || pr.quote.buy) + '원/돈' : ''}` : (p.price_fixed ? '고정가' : '-')], ['순도', esc(p.purity || '')], ['순중량', `<span id="pWeight">${p.weight_g}g (${don}돈)</span>${p.karat_option ? ' <small>14K 고시 중량 기준 · 18K는 ×1.2</small>' : ''}`], ['공임', p.labor ? fmtNum(p.labor) + '원 포함' : '없음'], ['분류', CAT_LABEL[p.category] || ''], ['되팔 때', pr.quote ? `당일 매입 시세 기준 (현재 ${fmtNum(pr.quote.buy)}원/돈 → 약 ${fmtNum(Math.round(pr.quote.buy / quotes.DON * p.weight_g))}원)` : '당일 매입 시세']];
+  const specs = [['현재 가격', pr.price ? `<b class="big" id="pPrice">${fmtNum(pr.price)}원</b> <small>부가세 포함</small>` : '시세 문의'], ['적용 시세', pr.basis ? `${esc(pr.basis)} 고시 · ${pr.quote ? esc(pr.quote.name) + ' 판매 ' + fmtNum(pr.quote.sell || pr.quote.buy) + '원/돈' : ''}` : (p.price_fixed ? '고정가' : '-')], ['순도', esc(p.purity || '')], ['순중량', `<span id="pWeight">${p.weight_g}g (${don}돈)</span>${p.karat_option ? ' <small>14K 고시 중량 기준 · 18K는 ×1.2</small>' : ''}`], ['분류', CAT_LABEL[p.category] || ''], ['되팔 때', pr.quote ? `당일 매입 시세 기준 (현재 ${fmtNum(pr.quote.buy)}원/돈 → 약 ${fmtNum(Math.round(pr.quote.buy / quotes.DON * p.weight_g))}원)` : '당일 매입 시세']];
   const body = `
 <section class="page-head"><div class="wrap"><p class="eyebrow">${CAT_LABEL[p.category] || '제품'}${p.badge ? ` · <span class="tag">${esc(p.badge)}</span>` : ''}</p><h1>${esc(p.name)} — 가격·중량·구매 안내</h1><p class="bluf">${esc(summary)}</p></div></section>
 <section class="section"><div class="wrap grid2">
@@ -321,11 +357,11 @@ router.get('/products/:slug', (req, res, next) => {
     ${hasOpts ? `<div class="opt-box" id="pOpts" data-combo='${attr(JSON.stringify(combos))}'>
       ${p.karat_option ? `<div class="opt-row"><span class="opt-label">순도</span><div class="chips">${karats.map((k, i) => `<button type="button" class="chip${i === 0 ? ' active' : ''}" data-karat="${k}">${k === '14k' ? '14K' : '18K'}</button>`).join('')}</div></div>` : ''}
       ${stones.length ? `<div class="opt-row"><span class="opt-label">스톤</span><div class="chips">${stones.map((x, i) => `<button type="button" class="chip${i === 0 ? ' active' : ''}" data-stone="${i}">${esc(x.name)}${x.add ? ` <small>+${fmtNum(x.add)}원</small>` : ''}</button>`).join('')}</div></div>` : ''}
-    </div>` : ''}<div class="calc-actions"><a class="btn btn-gold" href="/apply?kind=buy&item=${encodeURIComponent(p.name)}">구매 예약</a><a class="btn btn-kakao" href="${attr(s.kakao_channel)}" target="_blank" rel="noopener">카카오톡 재고 문의</a></div><p class="note">가격은 시세 연동 자동 계산값이며 결제 시점 매장 고시가가 최종 적용됩니다.</p></div></div>
+    </div>` : ''}<div class="calc-actions"><a class="btn btn-gold lg block" href="/order?product=${encodeURIComponent(p.slug)}">바로 구매</a></div><p class="note">가격은 시세 연동 자동 계산값이며 결제 시점 매장 고시가가 최종 적용됩니다.</p></div></div>
     <article class="prose">${bodyHtml}</article>
     ${faqs.length ? faqHtml(faqs, `${p.name} 자주 묻는 질문`) : ''}
   </div>
-  <aside class="side-col"><div class="side-card"><h3>오늘의 시세</h3><ul class="side-list">${st.rows.slice(0, 4).map(r => `<li><a href="/price/${r.metal}">${esc(r.name)}</a><span>${fmtNum(r.buy)}</span></li>`).join('')}</ul><a class="link" href="/price">시세표 →</a></div>${related.length ? `<div class="side-card"><h3>같은 분류 제품</h3><ul class="side-list">${related.map(r => { const rp = quotes.productPrice(r); return `<li><a href="/products/${attr(r.slug)}">${esc(r.name)}</a><span>${rp.price ? fmtNum(rp.price) + '원' : ''}</span></li>`; }).join('')}</ul></div>` : ''}<div class="side-card"><h3>매장 방문</h3><p>종로3가역 11번 출구 앞 · ${esc(s.hours)}</p><a class="btn btn-ghost-dark block" href="/about/location">오시는 길</a></div></aside>
+  <aside class="side-col"><div class="side-card"><h3>오늘의 시세</h3><ul class="side-list">${st.rows.slice(0, 4).map(r => `<li><a href="/price/${r.metal}">${esc(r.name)}</a><span>${fmtNum(r.buy)}</span></li>`).join('')}</ul><a class="link" href="/price">시세표 →</a></div>${related.length ? `<div class="side-card"><h3>같은 분류 제품</h3><ul class="side-list">${related.map(r => { const rp = quotes.productPrice(r); return `<li><a href="/products/${attr(r.slug)}">${esc(r.name)}</a><span>${rp.price ? fmtNum(rp.price) + '원' : ''}</span></li>`; }).join('')}</ul></div>` : ''}<div class="side-card"><h3>매장 방문</h3><p>종로3가역 1호선 2번 출구 앞 · ${esc(s.hours)}</p><a class="btn btn-ghost-dark block" href="/about/location">오시는 길</a></div></aside>
 </div></section>`;
   const ld = [{ '@context': 'https://schema.org', '@type': 'Product', name: p.name, description: summary, sku: p.slug, brand: { '@type': 'Brand', name: '문강금은' }, material: p.metal === 'silver' ? 'Silver 999' : `Gold ${p.purity}`, weight: { '@type': 'QuantitativeValue', value: p.weight_g, unitCode: 'GRM' }, image: p.image ? site + p.image : site + '/img/og.png', url: `${site}/products/${encodeURIComponent(p.slug)}`, category: CAT_LABEL[p.category] || '', additionalProperty: [{ '@type': 'PropertyValue', name: '적용 시세 기준시각', value: pr.basis || '-' }, { '@type': 'PropertyValue', name: '순도', value: p.purity }] }];
   if (pr.price) ld[0].offers = { '@type': 'Offer', priceCurrency: 'KRW', price: pr.price, priceValidUntil: kstDate(new Date(Date.now() + 86400000)), availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition', url: `${site}/products/${encodeURIComponent(p.slug)}`, seller: { '@id': site + '/#org' }, priceSpecification: { '@type': 'UnitPriceSpecification', price: pr.price, priceCurrency: 'KRW', valueAddedTaxIncluded: false } };

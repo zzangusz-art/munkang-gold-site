@@ -195,3 +195,31 @@
   const params = new URLSearchParams(location.search);
   if (params.get('item')) { const i = $('input[name=item]'); if (i && !i.value) i.value = params.get('item'); }
 })();
+
+// 전체 카테고리 드롭다운
+(function () {
+  var btn = document.getElementById('catAll'); var panel = document.getElementById('catPanel');
+  if (!btn || !panel) return;
+  var open = function (v) { panel.hidden = !v; btn.setAttribute('aria-expanded', v ? 'true' : 'false'); };
+  btn.addEventListener('click', function (e) { e.stopPropagation(); open(panel.hidden); });
+  document.addEventListener('click', function (e) { if (!panel.hidden && !panel.contains(e.target)) open(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') open(false); });
+})();
+
+// 주문서: 옵션·수량에 따라 금액과 품목 표시를 갱신
+(function () {
+  var price = document.getElementById('oPrice'); var item = document.getElementById('oItem');
+  if (!price || !item) return;
+  var opt = document.getElementById('oOpt'); var qty = document.getElementById('oQty');
+  var base = item.value;
+  var render = function () {
+    var o = opt ? opt.options[opt.selectedIndex] : null;
+    var unit = o ? Number(o.dataset.price || 0) : 0;
+    var n = qty ? Math.max(1, Number(qty.value) || 1) : 1;
+    if (unit) price.textContent = (unit * n).toLocaleString('ko-KR') + '원';
+    item.value = base + (o && o.value ? ' (' + o.value + ')' : '') + (n > 1 ? ' ' + n + '개' : '');
+  };
+  if (opt) opt.addEventListener('change', render);
+  if (qty) qty.addEventListener('input', render);
+  render();
+})();
