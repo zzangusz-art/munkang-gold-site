@@ -147,6 +147,19 @@ router.delete('/inquiries/:id', (req, res) => { db.prepare('DELETE FROM inquirie
 // ── 후기·유튜브 ──
 router.get('/reviews', (req, res) => res.json(db.prepare('SELECT * FROM reviews ORDER BY id DESC').all()));
 router.post('/reviews', (req, res) => { const b = req.body || {}; if (!b.text) return res.status(400).json({ error: '내용 필요' }); if (b.id) db.prepare('UPDATE reviews SET name=?,rating=?,kind=?,text=?,source=?,visible=? WHERE id=?').run(b.name || '고객', Number(b.rating) || 5, b.kind || '', b.text, b.source || '', b.visible ? 1 : 0, b.id); else db.prepare('INSERT INTO reviews (name,rating,kind,text,source,visible,created_at) VALUES (?,?,?,?,?,?,?)').run(b.name || '고객', Number(b.rating) || 5, b.kind || '', b.text, b.source || '', b.visible === false ? 0 : 1, now()); res.json({ ok: true }); });
+// 후기 일괄 등록 — 한 줄에 하나: "이름 | 별점 | 구분 | 내용" (내용만 있어도 됨)
+router.post('/reviews/bulk', (req, res) => {
+  const b = req.body || {}; const ins = db.prepare('INSERT INTO reviews (name,rating,kind,text,source,visible,created_at) VALUES (?,?,?,?,?,1,?)');
+  let n = 0; const ts = now();
+  for (const line of String(b.text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)) {
+    const parts = line.split('|').map(x => x.trim());
+    const text = parts.length >= 4 ? parts.slice(3).join(' | ') : parts[parts.length - 1];
+    if (!text) continue;
+    const rating = Math.min(5, Math.max(1, Number(parts.length >= 4 ? parts[1] : 5) || 5));
+    ins.run(parts.length >= 4 ? (parts[0] || '고객') : '고객', rating, parts.length >= 4 ? parts[2] : '', text.slice(0, 1000), String(b.source || '').slice(0, 40), ts + n); n++;
+  }
+  res.json({ ok: true, added: n });
+});
 router.delete('/reviews/:id', (req, res) => { db.prepare('DELETE FROM reviews WHERE id=?').run(req.params.id); res.json({ ok: true }); });
 router.get('/videos', (req, res) => res.json(db.prepare('SELECT * FROM videos ORDER BY sort, id DESC').all()));
 router.post('/videos', (req, res) => { const b = req.body || {}; const m = String(b.url || b.youtube_id || '').match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})|^([\w-]{11})$/); const id = m ? (m[1] || m[2]) : null; if (!id || !b.title) return res.status(400).json({ error: '유튜브 URL과 제목 필요' }); db.prepare('INSERT INTO videos (youtube_id,title,description,published,sort,created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title, description=excluded.description, published=excluded.published, sort=excluded.sort').run(id, b.title, b.description || '', b.published || kstDate(), Number(b.sort) || 0, now()); res.json({ ok: true, id }); });

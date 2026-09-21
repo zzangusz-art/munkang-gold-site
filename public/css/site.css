@@ -456,3 +456,20 @@ table.lineup .lu-na{color:var(--muted);font-size:14px}
 .order-sum b{font-size:16px}
 .order-sum .os-price{font-size:26px;color:var(--gold-d)}
 .order-sum span{font-size:13px;color:var(--muted)}
+
+/* 홈 후기 롤링 · 상품 라인업 버튼 간격 · 헤더 정렬 (09-21) */
+.lineup-products .pgrid+.center{margin-top:48px}
+.rv-marquee{overflow:hidden;padding:6px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.rv-marquee+.rv-marquee{margin-top:14px}
+.rv-track{display:flex;gap:14px;width:max-content;animation:rvScroll 90s linear infinite}
+.rv-marquee.rev .rv-track{animation-direction:reverse}
+.rv-marquee:hover .rv-track{animation-play-state:paused}
+.rv-track .rv{flex:none;width:300px;margin:0}
+@keyframes rvScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.rv-track{animation:none}.rv-marquee{overflow-x:auto}}
+@media (min-width:901px){
+  .header-inner{display:grid;grid-template-columns:1fr minmax(320px,460px) 1fr;gap:24px}
+  .header-inner .logo{justify-self:start}
+  .header-inner .hsearch{justify-self:center;width:100%;max-width:none}
+  .header-inner .header-cta{justify-self:end}
+}

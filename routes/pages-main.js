@@ -65,7 +65,7 @@ router.get('/', (req, res) => {
   const s = settings.all(); const st = quotes.stats(); const g = st.gold; const sp = quotes.spot();
   const posts = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' ORDER BY published_at DESC LIMIT 3").all();
   const videos = db.prepare('SELECT * FROM videos ORDER BY sort, id DESC LIMIT 3').all();
-  const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 6').all();
+  const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 50').all();
   const featured = db.prepare("SELECT * FROM products WHERE status='published' AND featured=1 ORDER BY sort, id LIMIT 8").all();
   const fresh = db.prepare("SELECT * FROM products WHERE status='published' ORDER BY created_at DESC, id DESC LIMIT 4").all();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));
@@ -148,7 +148,9 @@ ${fresh.length ? `<section class="section new-products">
   </div>
 </section>` : ''}
 
-${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><h2>고객 후기</h2></div><a class="link" href="/reviews">후기 더 보기 →</a></div><div class="rv-grid">${reviews.map(r => `<blockquote class="rv reveal"><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(r.text)}</p><footer>${esc(r.name)} · ${esc(r.kind || '')}</footer></blockquote>`).join('')}</div></div></section>` : ''}
+${reviews.length ? `<section class="section reviews-sec"><div class="wrap"><div class="sec-head"><div><h2>고객 후기</h2><p class="sub">문강금은에서 거래하신 고객님들의 후기 ${reviews.length}건</p></div><a class="link" href="/reviews">후기 더 보기 →</a></div></div>
+  ${[reviews.filter((_, i) => i % 2 === 0), reviews.filter((_, i) => i % 2 === 1)].filter(r => r.length).map((row, ri) => `<div class="rv-marquee${ri ? ' rev' : ''}"><div class="rv-track">${[...row, ...row].map((r, i) => `<blockquote class="rv"${i >= row.length ? ' aria-hidden="true"' : ''}><span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(truncate(r.text, 140))}</p><footer>${esc(r.name)}${r.kind ? ' · ' + esc(r.kind) : ''}</footer></blockquote>`).join('')}</div></div>`).join('')}
+</section>` : ''}}
 
 <section class="section process">
   <div class="wrap">

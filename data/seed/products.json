@@ -107,7 +107,7 @@
  },
  {
   "slug": "baby-ring-half-don",
-  "category": "gift",
+  "category": "baby",
   "name": "돌반지 반돈(1.875g)",
   "metal": "gold",
   "purity": "999.9",
@@ -120,7 +120,7 @@
  },
  {
   "slug": "baby-ring-1-don",
-  "category": "gift",
+  "category": "baby",
   "name": "돌반지 한돈(3.75g)",
   "metal": "gold",
   "purity": "999.9",
@@ -133,7 +133,7 @@
  },
  {
   "slug": "baby-bracelet-1-don",
-  "category": "gift",
+  "category": "baby",
   "name": "돌팔찌 한돈(3.75g)",
   "metal": "gold",
   "purity": "999.9",
@@ -211,7 +211,7 @@
  },
  {
   "slug": "pure-gold-ring-1-don",
-  "category": "jewelry",
+  "category": "women",
   "name": "순금 반지 한돈(3.75g)",
   "metal": "gold",
   "purity": "999.9",
@@ -224,7 +224,7 @@
  },
  {
   "slug": "pure-gold-couple-ring",
-  "category": "jewelry",
+  "category": "women",
   "name": "순금 쌍가락지 두돈(7.5g)",
   "metal": "gold",
   "purity": "999.9",
@@ -237,7 +237,7 @@
  },
  {
   "slug": "pure-gold-necklace-2-don",
-  "category": "jewelry",
+  "category": "women",
   "name": "순금 목걸이 두돈(7.5g)",
   "metal": "gold",
   "purity": "999.9",
@@ -250,7 +250,7 @@
  },
  {
   "slug": "pure-gold-bracelet-3-don",
-  "category": "jewelry",
+  "category": "women",
   "name": "순금 팔찌 세돈(11.25g)",
   "metal": "gold",
   "purity": "999.9",
