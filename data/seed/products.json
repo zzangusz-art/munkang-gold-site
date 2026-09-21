@@ -436,5 +436,295 @@
   "men_seed": 1,
   "summary": "남성용 순금 팔찌입니다. 당일 시세로 계산한 가격이며 되팔 때도 당일 매입 시세를 적용합니다.",
   "body_html": "<p>순금 999.9 제품으로, 가격은 (당일 판매 시세 원/g × 순중량) + 공임으로 계산되며 표시 금액에는 부가세가 포함되어 있습니다. 호수·길이 조정과 각인은 매장에서 상담해 드립니다.</p>"
+ },
+ {
+  "slug": "14k-ball-ring-2-5mm",
+  "category": "jewelry",
+  "name": "14K 민볼 볼반지 2.5mm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 0.57,
+  "quote_code": "au585",
+  "labor": 120000,
+  "catalog": 1,
+  "summary": "2.5mm 민볼이 촘촘히 이어진 뺑돌이 볼반지입니다. 제품코드 JR0102, 14K 기준 중량 0.57g.",
+  "body_html": "<p>2.5mm 민볼이 촘촘히 이어진 뺑돌이 볼반지입니다.</p><table><tbody><tr><th>제품코드</th><td>JR0102</td></tr><tr><th>소재</th><td>14K/18K 옐로우·핑크</td></tr><tr><th>사이즈</th><td>5호~30호 (12호 기준, 반호수 불가)</td></tr><tr><th>중량 편차</th><td>12호 기준 0.6~0.67g</td></tr><tr><th>중량</th><td>0.57g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-ball-ring-2mm",
+  "category": "jewelry",
+  "name": "14K 민볼 볼반지 2mm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 0.46,
+  "quote_code": "au585",
+  "labor": 115000,
+  "catalog": 1,
+  "summary": "2mm 민볼로 가늘게 떨어지는 볼반지입니다. 레이어드용으로 좋습니다. 제품코드 JR0100, 14K 기준 중량 0.46g.",
+  "body_html": "<p>2mm 민볼로 가늘게 떨어지는 볼반지입니다. 레이어드용으로 좋습니다.</p><table><tbody><tr><th>제품코드</th><td>JR0100</td></tr><tr><th>소재</th><td>14K/18K 옐로우·핑크</td></tr><tr><th>사이즈</th><td>5호~30호 (반호수 불가)</td></tr><tr><th>중량</th><td>0.46g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-twist-ring-4-5mm",
+  "category": "jewelry",
+  "name": "14K 뺑돌이 반지 4.5mm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 1.53,
+  "quote_code": "au585",
+  "labor": 150000,
+  "catalog": 1,
+  "summary": "골이 굵게 들어간 4.5mm 폭 뺑돌이 반지입니다. 제품코드 R1019-4.5MM, 14K 기준 중량 1.53g.",
+  "body_html": "<p>골이 굵게 들어간 4.5mm 폭 뺑돌이 반지입니다.</p><table><tbody><tr><th>제품코드</th><td>R1019-4.5MM</td></tr><tr><th>소재</th><td>14K/18K</td></tr><tr><th>사이즈</th><td>1호~30호 (12호 기준, 1호 단위 제작·반호수 불가)</td></tr><tr><th>중량</th><td>1.53g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-twist-ring-6-5mm",
+  "category": "jewelry",
+  "name": "14K 뺑돌이 반지 6.5mm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 2.12,
+  "quote_code": "au585",
+  "labor": 160000,
+  "catalog": 1,
+  "summary": "존재감 있는 6.5mm 폭 뺑돌이 반지입니다. 제품코드 R1019-6.5MM, 14K 기준 중량 2.12g.",
+  "body_html": "<p>존재감 있는 6.5mm 폭 뺑돌이 반지입니다.</p><table><tbody><tr><th>제품코드</th><td>R1019-6.5MM</td></tr><tr><th>소재</th><td>14K/18K</td></tr><tr><th>사이즈</th><td>1호~30호 (12호 기준, 1호 단위 제작·반호수 불가)</td></tr><tr><th>중량</th><td>2.12g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-barrel-chain-necklace",
+  "category": "jewelry",
+  "name": "14K 바렐 펜던트 목걸이",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 2.15,
+  "quote_code": "au585",
+  "labor": 200000,
+  "catalog": 1,
+  "summary": "8mm 바렐 펜던트를 가는 체인에 단 데일리 목걸이입니다. 제품코드 JRN6911/DT, 14K 기준 중량 2.15g.",
+  "body_html": "<p>8mm 바렐 펜던트를 가는 체인에 단 데일리 목걸이입니다.</p><table><tbody><tr><th>제품코드</th><td>JRN6911/DT</td></tr><tr><th>소재</th><td>14K</td></tr><tr><th>기장</th><td>40cm + 2cm</td></tr><tr><th>구성</th><td>붕어소 3푼 신함마체인 + 8mm 바렐 펜던트</td></tr><tr><th>중량</th><td>2.15g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-bubble-necklace-42cm",
+  "category": "jewelry",
+  "name": "14K 버블 체인 목걸이 42cm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 6.0,
+  "quote_code": "au585",
+  "labor": 250000,
+  "catalog": 1,
+  "summary": "볼이 연결된 버블 체인 목걸이입니다. 제품코드 JN0103, 14K 기준 중량 6.0g.",
+  "body_html": "<p>볼이 연결된 버블 체인 목걸이입니다.</p><table><tbody><tr><th>제품코드</th><td>JN0103</td></tr><tr><th>소재</th><td>14K/18K 옐로우·핑크</td></tr><tr><th>기장</th><td>42cm</td></tr><tr><th>중량 편차</th><td>42cm 기준 5.7~6.3g</td></tr><tr><th>중량</th><td>6.0g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-rope-bracelet-1-0",
+  "category": "jewelry",
+  "name": "14K 로프 체인 팔찌 1.0",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 1.86,
+  "quote_code": "au585",
+  "labor": 220000,
+  "catalog": 1,
+  "summary": "꼬임이 살아 있는 수입 로프 체인 팔찌입니다. 제품코드 로프B1.0, 14K 기준 중량 1.86g.",
+  "body_html": "<p>꼬임이 살아 있는 수입 로프 체인 팔찌입니다.</p><table><tbody><tr><th>제품코드</th><td>로프B1.0</td></tr><tr><th>소재</th><td>14K</td></tr><tr><th>기장</th><td>여유 + 참 변경 가능</td></tr><tr><th>중량</th><td>1.86g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-rope-bracelet-1-4",
+  "category": "jewelry",
+  "name": "14K 로프 체인 팔찌 1.4 (폭 2mm)",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 3.06,
+  "quote_code": "au585",
+  "labor": 200000,
+  "catalog": 1,
+  "summary": "폭 2mm 국산 로프 체인 팔찌입니다. 제품코드 로프B1.4, 14K 기준 중량 3.06g.",
+  "body_html": "<p>폭 2mm 국산 로프 체인 팔찌입니다.</p><table><tbody><tr><th>제품코드</th><td>로프B1.4</td></tr><tr><th>소재</th><td>14K</td></tr><tr><th>폭</th><td>2mm (국산 체인)</td></tr><tr><th>중량</th><td>3.06g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-twist-bracelet",
+  "category": "jewelry",
+  "name": "14K 뺑돌이 팔찌 17.5cm",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 6.34,
+  "quote_code": "au585",
+  "labor": 200000,
+  "catalog": 1,
+  "summary": "뺑돌이 반지와 세트로 맞추기 좋은 팔찌입니다. 제품코드 B1019, 14K 기준 중량 6.34g.",
+  "body_html": "<p>뺑돌이 반지와 세트로 맞추기 좋은 팔찌입니다.</p><table><tbody><tr><th>제품코드</th><td>B1019</td></tr><tr><th>소재</th><td>14K</td></tr><tr><th>기장</th><td>17.5cm (1주름 약 5.5mm 단위로 줄임·늘림 가능)</td></tr><tr><th>보조줄</th><td>5푼 민줄 5cm 추가 시 약 0.2g</td></tr><tr><th>중량</th><td>6.34g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-barrel-hoop-earrings",
+  "category": "jewelry",
+  "name": "14K 바렐 원터치 귀걸이 (대)",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 1.96,
+  "quote_code": "au585",
+  "labor": 150000,
+  "catalog": 1,
+  "summary": "통통한 바렐 모양의 원터치 링 귀걸이입니다. 제품코드 JRE6911-1/DT, 14K 기준 중량 1.96g.",
+  "body_html": "<p>통통한 바렐 모양의 원터치 링 귀걸이입니다.</p><table><tbody><tr><th>제품코드</th><td>JRE6911-1/DT</td></tr><tr><th>소재</th><td>14K</td></tr><tr><th>규격</th><td>5.5 × 11.4mm (대자)</td></tr><tr><th>잠금</th><td>원터치(힌지)식</td></tr><tr><th>중량</th><td>1.96g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1
+ },
+ {
+  "slug": "14k-diamond-5bu-necklace",
+  "category": "jewelry",
+  "name": "14K 5부 라운드 다이아 목걸이",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 1.8,
+  "quote_code": "au585",
+  "labor": 90000,
+  "catalog": 1,
+  "summary": "5부 라운드 스톤 하나를 올린 목걸이입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다. 제품코드 JRN6877-5부/DT, 14K 기준 중량 1.8g.",
+  "body_html": "<p>5부 라운드 스톤 하나를 올린 목걸이입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다.</p><table><tbody><tr><th>제품코드</th><td>JRN6877-5부/DT</td></tr><tr><th>스톤</th><td>라운드컷 5부 (5.25mm, QB등급)</td></tr><tr><th>체인</th><td>붕어소 3푼 각체인</td></tr><tr><th>기장</th><td>40cm + 2cm</td></tr><tr><th>중량</th><td>1.8g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1,
+  "stone_json": [
+   {
+    "name": "모이사나이트",
+    "add": 15000
+   },
+   {
+    "name": "랩다이아",
+    "add": 30000
+   }
+  ]
+ },
+ {
+  "slug": "14k-moissanite-tennis-bracelet-3mm",
+  "category": "jewelry",
+  "name": "3mm 테니스 팔찌",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 4.98,
+  "quote_code": "au585",
+  "labor": 150000,
+  "catalog": 1,
+  "summary": "3mm 스톤 50개를 한 줄로 세팅한 테니스 팔찌입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다. 제품코드 JG0431B-3MM, 14K 기준 중량 4.98g.",
+  "body_html": "<p>3mm 스톤 50개를 한 줄로 세팅한 테니스 팔찌입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다.</p><table><tbody><tr><th>제품코드</th><td>JG0431B-3MM</td></tr><tr><th>스톤</th><td>라운드 3mm × 50개</td></tr><tr><th>마감</th><td>화이트 도금, 마디 움직임이 부드러운 안바닥</td></tr><tr><th>기장</th><td>17cm (혀장식·시계 이중잠금)</td></tr><tr><th>중량</th><td>4.98g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1,
+  "stone_json": [
+   {
+    "name": "모이사나이트",
+    "add": 15000
+   },
+   {
+    "name": "랩다이아",
+    "add": 30000
+   }
+  ]
+ },
+ {
+  "slug": "14k-diamond-5bu-stud-earrings",
+  "category": "jewelry",
+  "name": "14K 5부 라운드 다이아 귀걸이",
+  "metal": "gold",
+  "purity": "585",
+  "weight_g": 0.84,
+  "quote_code": "au585",
+  "labor": 80000,
+  "catalog": 1,
+  "summary": "5부 스톤을 6발로 물린 스터드 귀걸이입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다. 제품코드 JRS9530-5부, 14K 기준 중량 0.84g.",
+  "body_html": "<p>5부 스톤을 6발로 물린 스터드 귀걸이입니다. 모이사나이트와 랩다이아 중에서 고를 수 있습니다.</p><table><tbody><tr><th>제품코드</th><td>JRS9530-5부</td></tr><tr><th>스톤</th><td>라운드컷 5부 (5.25mm, QB등급) 2개</td></tr><tr><th>다이아값</th><td>랩다이아는 2개 포함 금액</td></tr><tr><th>중량</th><td>0.84g (14K 기준)</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table><p>14K 고시 중량 기준으로 등록된 제품이며, 18K로도 제작할 수 있습니다(18K 중량 = 14K 중량 × 1.2). 가격은 14K 중량을 순금 중량으로 환산(14K 돈 수 × 0.6435)한 뒤 당일 순금 판매 시세를 곱하고 공임을 더해 계산합니다.</p>",
+  "karat_option": 1,
+  "stone_json": [
+   {
+    "name": "모이사나이트",
+    "add": 15000
+   },
+   {
+    "name": "랩다이아",
+    "add": 60000
+   }
+  ]
+ },
+ {
+  "slug": "pure-gold-hammer-chain-1m",
+  "category": "women",
+  "name": "순금 함마 체인 (1M)",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 0.78,
+  "quote_code": "au999",
+  "labor": 60000,
+  "catalog": 1,
+  "summary": "순금 999 함마 체인입니다. 원하는 길이로 맞춰 제작합니다. 제품코드 1M/1.8G함마N, 중량 0.78g.",
+  "body_html": "<p>순금 999 함마 체인입니다. 원하는 길이로 맞춰 제작합니다.</p><table><tbody><tr><th>제품코드</th><td>1M/1.8G함마N</td></tr><tr><th>소재</th><td>순금 999 / 18K 연결고리</td></tr><tr><th>기장</th><td>1M 기준</td></tr><tr><th>중량</th><td>0.78g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
+ },
+ {
+  "slug": "pure-gold-steady-2line-necklace",
+  "category": "women",
+  "name": "순금 스테디 두줄 목걸이 42cm",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 3.18,
+  "quote_code": "au999",
+  "labor": 180000,
+  "catalog": 1,
+  "summary": "순금 체인 두 줄을 겹친 스테디 목걸이입니다. 제품코드 JN0025-2, 중량 3.18g.",
+  "body_html": "<p>순금 체인 두 줄을 겹친 스테디 목걸이입니다.</p><table><tbody><tr><th>제품코드</th><td>JN0025-2</td></tr><tr><th>소재</th><td>순금 체인 99.9 / 18K 장식 연결(SR5mmLITE, A바)</td></tr><tr><th>기장</th><td>총 42cm (40cm + 영고리)</td></tr><tr><th>중량 구성</th><td>24K 3.03g + 18K 0.15g</td></tr><tr><th>중량</th><td>3.18g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
+ },
+ {
+  "slug": "pure-gold-dolset-2line-necklace",
+  "category": "women",
+  "name": "순금 돌셋 두줄 목걸이 42cm",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 3.0,
+  "quote_code": "au999",
+  "labor": 180000,
+  "catalog": 1,
+  "summary": "돌셋 체인 두 줄로 반짝임을 살린 순금 목걸이입니다. 제품코드 N0102-2, 중량 3.0g.",
+  "body_html": "<p>돌셋 체인 두 줄로 반짝임을 살린 순금 목걸이입니다.</p><table><tbody><tr><th>제품코드</th><td>N0102-2</td></tr><tr><th>소재</th><td>순금 체인 999 / 18K 장식 연결(SR5mmLITE, A바)</td></tr><tr><th>기장</th><td>42cm (40cm + 영고리)</td></tr><tr><th>중량 구성</th><td>24K 2.83g + 18K 0.17g</td></tr><tr><th>중량</th><td>3.0g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
+ },
+ {
+  "slug": "pure-gold-pendant-sp0482",
+  "category": "women",
+  "name": "순금 바렐 펜던트",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 0.25,
+  "quote_code": "au999",
+  "labor": 70000,
+  "catalog": 1,
+  "summary": "가지고 계신 체인에 걸기 좋은 순금 펜던트입니다. 제품코드 SP0482, 중량 0.25g.",
+  "body_html": "<p>가지고 계신 체인에 걸기 좋은 순금 펜던트입니다.</p><table><tbody><tr><th>제품코드</th><td>SP0482</td></tr><tr><th>소재</th><td>순금 24K</td></tr><tr><th>구성</th><td>펜던트 단품 (체인 별도)</td></tr><tr><th>중량</th><td>0.25g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
+ },
+ {
+  "slug": "pure-gold-dolset-2line-bracelet",
+  "category": "women",
+  "name": "순금 돌셋 두줄 팔찌 17.5cm",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 1.2,
+  "quote_code": "au999",
+  "labor": 150000,
+  "catalog": 1,
+  "summary": "돌셋 체인 두 줄의 순금 팔찌입니다. 같은 디자인 목걸이와 세트로 맞출 수 있습니다. 제품코드 B0102-2, 중량 1.2g.",
+  "body_html": "<p>돌셋 체인 두 줄의 순금 팔찌입니다. 같은 디자인 목걸이와 세트로 맞출 수 있습니다.</p><table><tbody><tr><th>제품코드</th><td>B0102-2</td></tr><tr><th>소재</th><td>24K + 18K 장식 (순금 체인 999)</td></tr><tr><th>기장</th><td>17.5cm</td></tr><tr><th>중량</th><td>1.2g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
+ },
+ {
+  "slug": "pure-gold-steady-2line-bracelet",
+  "category": "women",
+  "name": "순금 스테디 두줄 팔찌 17.5cm",
+  "metal": "gold",
+  "purity": "999.9",
+  "weight_g": 1.37,
+  "quote_code": "au999",
+  "labor": 170000,
+  "catalog": 1,
+  "summary": "스테디 두 줄 팔찌입니다. 같은 디자인 목걸이와 세트로 맞출 수 있습니다. 제품코드 JB0025-2, 중량 1.37g.",
+  "body_html": "<p>스테디 두 줄 팔찌입니다. 같은 디자인 목걸이와 세트로 맞출 수 있습니다.</p><table><tbody><tr><th>제품코드</th><td>JB0025-2</td></tr><tr><th>소재</th><td>24K 골드 / 18K 장식 (순금 체인, 4면 수입 체인)</td></tr><tr><th>기장</th><td>17.5cm</td></tr><tr><th>중량 구성</th><td>24K 1.22g + 18K 0.15g</td></tr><tr><th>중량</th><td>1.37g</td></tr><tr><th>제작</th><td>제작 주문 시 평일 7~9일 소요되며, 재고가 있으면 바로 출고합니다.</td></tr></tbody></table>"
  }
 ]

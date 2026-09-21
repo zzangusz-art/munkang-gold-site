@@ -185,6 +185,7 @@
       const c = combo[`${karat}|${stone}`]; if (!c) return;
       if (priceEl && c.price) { priceEl.textContent = fmt(c.price) + '원'; priceEl.classList.remove('flash'); void priceEl.offsetWidth; priceEl.classList.add('flash'); }
       if (weightEl && c.weight) weightEl.textContent = `${c.weight}g (${c.don}돈)`;
+      const pureEl = $('#pPure'); if (pureEl && c.pure) pureEl.textContent = `${c.pure}돈`;
       if (applyBtn) { const u = new URL(applyBtn.href, location.origin); u.searchParams.set('opt', `${karat === '18k' ? '18K' : '14K'}${stone !== '0' ? ' / ' + ($(`[data-stone="${stone}"]`, optBox) || {}).textContent.trim() : ''}`); applyBtn.href = u.pathname + u.search; }
     };
     $$('[data-karat]', optBox).forEach(b => b.addEventListener('click', () => { karat = b.dataset.karat; $$('[data-karat]', optBox).forEach(x => x.classList.toggle('active', x === b)); render(); }));

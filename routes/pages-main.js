@@ -343,13 +343,14 @@ router.get('/products/:slug', (req, res, next) => {
   for (const k of karats) {
     for (let i = 0; i < Math.max(1, stones.length); i++) {
       const pp = quotes.productPrice(p, { karat: k, stoneAdd: stones[i] ? stones[i].add : 0 });
-      combos[`${k}|${i}`] = { price: pp.price, weight: Math.round((pp.weight_g || 0) * 100) / 100, don: Math.round((pp.weight_g || 0) / quotes.DON * 100) / 100 };
+      combos[`${k}|${i}`] = { price: pp.price, weight: Math.round((pp.weight_g || 0) * 100) / 100, don: Math.round((pp.weight_g || 0) / quotes.DON * 100) / 100, pure: pp.pure_don || null };
     }
   }
   const hasOpts = p.karat_option || stones.length > 0;
   const summary = p.summary || `${p.name} — 순도 ${p.purity}, ${p.weight_g}g. 문강금은 당일 시세 연동 가격.`;
   const bodyHtml = p.body_html || `<h2>${esc(p.name)}은(는) 어떤 제품인가요?</h2><p>상세 설명은 준비 중입니다. 가격은 당일 시세에 연동되며 아래 표와 상담을 통해 확인하실 수 있습니다.</p>`;
-  const specs = [['현재 가격', pr.price ? `<b class="big" id="pPrice">${fmtNum(pr.price)}원</b> <small>부가세 포함</small>` : '시세 문의'], ['적용 시세', pr.basis ? `${esc(pr.basis)} 고시 · ${pr.quote ? esc(pr.quote.name) + ' 판매 ' + fmtNum(pr.quote.sell || pr.quote.buy) + '원/돈' : ''}` : (p.price_fixed ? '고정가' : '-')], ['순도', esc(p.purity || '')], ['순중량', `<span id="pWeight">${p.weight_g}g (${don}돈)</span>${p.karat_option ? ' <small>14K 고시 중량 기준 · 18K는 ×1.2</small>' : ''}`], ['분류', CAT_LABEL[p.category] || ''], ['되팔 때', pr.quote ? `당일 매입 시세 기준 (현재 ${fmtNum(pr.quote.buy)}원/돈 → 약 ${fmtNum(Math.round(pr.quote.buy / quotes.DON * p.weight_g))}원)` : '당일 매입 시세']];
+  const rq = (p.quote_code && quotes.byCode(p.quote_code)) || pr.quote;
+  const specs = [['현재 가격', pr.price ? `<b class="big" id="pPrice">${fmtNum(pr.price)}원</b> <small>부가세 포함</small>` : '시세 문의'], ['적용 시세', pr.basis ? `${esc(pr.basis)} 고시 · ${pr.quote ? esc(pr.quote.name) + ' 판매 ' + fmtNum(pr.quote.sell || pr.quote.buy) + '원/돈' : ''}` : (p.price_fixed ? '고정가' : '-')], ['순도', esc(p.purity || '')], ['순중량', `<span id="pWeight">${p.weight_g}g (${don}돈)</span>${p.karat_option ? ` <small>14K 고시 중량 기준 · 18K는 ×${quotes.karatFactors().k18w}</small>` : ''}`], ...(pr.conv ? [['순금 환산', `<span id="pPure">${pr.pure_don}돈</span> <small>14K 돈 수 × ${quotes.karatFactors().k14}(18K는 중량 ×${quotes.karatFactors().k18w} 후 × ${quotes.karatFactors().k18}) · 순금 판매 시세 적용</small>`]] : []), ['분류', CAT_LABEL[p.category] || ''], ['되팔 때', rq ? `당일 ${esc(rq.name)} 매입 시세 기준 (현재 ${fmtNum(rq.buy)}원/돈 → 약 ${fmtNum(Math.round(rq.buy / quotes.DON * p.weight_g))}원)` : '당일 매입 시세']];
   const body = `
 <section class="page-head"><div class="wrap"><p class="eyebrow">${CAT_LABEL[p.category] || '제품'}${p.badge ? ` · <span class="tag">${esc(p.badge)}</span>` : ''}</p><h1>${esc(p.name)} — 가격·중량·구매 안내</h1><p class="bluf">${esc(summary)}</p></div></section>
 <section class="section"><div class="wrap grid2">

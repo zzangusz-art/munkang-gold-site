@@ -39,6 +39,16 @@ function seedProducts() {
 function seedDiamondJewelry() { return seedOnce('seed_diamond_20260916', p => p.diamond); }
 // 순금 남성 라인업 1회 추가(2026-09-18)
 function seedMensLine() { return seedOnce('seed_men_20260918', p => p.men_seed); }
+// 카탈로그(14K·18K·다이아·순금) 실제 제품 1회 등록, 예시로 넣었던 주얼리 샘플은 비공개로 전환(2026-09-21)
+function seedCatalog() {
+  const { getSetting } = require('../db');
+  if (getSetting('seed_catalog_20260921')) return 0;
+  db.prepare("UPDATE products SET status='draft' WHERE slug IN ('14k-diamond-solitaire-ring','14k-diamond-necklace','14k-diamond-earrings','14k-diamond-eternity-ring','14k-diamond-tennis-bracelet','14k-basic-ring')").run();
+  const n = seedOnce('seed_catalog_20260921', p => p.catalog);
+  const setImg = db.prepare("UPDATE products SET image=? WHERE slug=? AND (image IS NULL OR image='')");
+  for (const p of J('products.json').filter(x => x.catalog)) setImg.run(`/img/products/${p.slug}.jpg`, p.slug);
+  return n;
+}
 function seedOnce(flag, filter) {
   const { getSetting, setSetting } = require('../db');
   if (getSetting(flag)) return 0;
@@ -81,7 +91,7 @@ function seedNotice() {
   return 1;
 }
 function seedIfEmpty(force = false) {
-  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
+  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), catalog: seedCatalog(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
   if (Object.values(r).some(Boolean)) console.log('[seed]', JSON.stringify(r));
   return r;
 }
