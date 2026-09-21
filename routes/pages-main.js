@@ -66,7 +66,9 @@ router.get('/', (req, res) => {
   const posts = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' ORDER BY published_at DESC LIMIT 3").all();
   const videos = db.prepare('SELECT * FROM videos ORDER BY sort, id DESC LIMIT 3').all();
   const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 50').all();
-  const featured = db.prepare("SELECT * FROM products WHERE status='published' AND featured=1 ORDER BY sort, id LIMIT 8").all();
+  // 상품 라인업: 사진이 있는 제품 먼저, 그다음 BEST (신규 상품 칸과 겹치지 않게 최신 4개는 제외)
+  const freshIds = db.prepare("SELECT id FROM products WHERE status='published' ORDER BY created_at DESC, id DESC LIMIT 4").all().map(r => r.id);
+  const featured = db.prepare(`SELECT * FROM products WHERE status='published' AND id NOT IN (${freshIds.map(() => '?').join(',') || 'NULL'}) ORDER BY (image IS NOT NULL AND image <> '') DESC, featured DESC, sort, id LIMIT 8`).all(...freshIds);
   const fresh = db.prepare("SELECT * FROM products WHERE status='published' ORDER BY created_at DESC, id DESC LIMIT 4").all();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));
   counts.today = db.prepare("SELECT COUNT(*) c FROM products WHERE status='published' AND ready_today=1").get().c;
