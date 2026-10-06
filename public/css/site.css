@@ -648,3 +648,25 @@ table.lineup .lu-na{color:var(--muted);font-size:14px}
 .cb-sub a{padding:8px 12px;border-radius:8px;font-size:14px;color:var(--ink);font-weight:600}
 .cb-sub a:hover{background:var(--bg-2);text-decoration:none}
 @media (max-width:900px){.cb-sub{display:none!important}}
+
+/* 배너 가독성·크로스페이드 (10-07) */
+.mb-track{position:relative}
+.mb-slide{display:block;position:absolute;inset:0;opacity:0;transition:opacity .8s ease;pointer-events:none}
+.mb-slide:first-child{position:relative}
+.mb-slide.on{opacity:1;z-index:2;pointer-events:auto}
+.mb-slide::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none}
+.mb-dark::after{background:linear-gradient(90deg,rgba(255,255,255,.88) 0%,rgba(255,255,255,.66) 30%,rgba(255,255,255,.12) 56%,rgba(255,255,255,0) 70%)}
+.mb-light::after{background:linear-gradient(90deg,rgba(18,15,12,.72) 0%,rgba(18,15,12,.5) 32%,rgba(18,15,12,.12) 58%,rgba(18,15,12,0) 72%)}
+.mb-copy{z-index:2}
+.mb-light .mb-copy{text-shadow:0 2px 14px rgba(0,0,0,.45)}
+.mb-light .mb-btn{background:rgba(255,255,255,.12);backdrop-filter:blur(2px)}
+.mb-light .mb-btn:hover{background:#fff;color:#1b1813}
+.mb-dark .mb-btn:hover{background:#000}
+.mb-slide img{transition:transform 6s ease-out}
+.mb-slide.on img{transform:scale(1.03)}
+@media (max-width:900px){
+  .mb-dark::after{background:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.4) 38%,rgba(255,255,255,.12) 62%,rgba(255,255,255,0) 100%)}
+  .mb-light::after{background:linear-gradient(180deg,rgba(18,15,12,.66) 0%,rgba(18,15,12,.42) 40%,rgba(18,15,12,.18) 70%,rgba(18,15,12,.05) 100%)}
+  .mb-copy{top:auto;bottom:64px;transform:none}
+  .mb-slide.on img{transform:none}
+}

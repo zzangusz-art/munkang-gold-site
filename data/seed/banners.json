@@ -6,7 +6,7 @@
   "subtitle": "시간이 지나도 변하지 않는 순수함 / 지금, 당신의 일상에 순금의 빛을 더하세요",
   "btn_text": "순금 주얼리 더보기",
   "href": "/products?category=women",
-  "theme": "dark"
+  "theme": "light"
  },
  {
   "image": "/img/banners/b2.jpg",
@@ -15,7 +15,7 @@
   "subtitle": "세대를 넘어 이어지는 금의 본질, / 가장 확실한 자산이 됩니다.",
   "btn_text": "골드바 더보기",
   "href": "/products?category=goldbar",
-  "theme": "dark"
+  "theme": "light"
  },
  {
   "image": "/img/banners/b3.jpg",
