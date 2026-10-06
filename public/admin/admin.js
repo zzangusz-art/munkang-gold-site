@@ -241,4 +241,147 @@ ${sh.admin.length ? `<h3>관리자 화면</h3><div class="shots">${sh.admin.map(
   };
 
   boot();
+
+  // ===== 온라인몰 관리 (10-06) =====
+  const OSTAT = { pending: '입금 대기', paid: '결제 완료', ready: '상품 준비', shipping: '배송 중', done: '배송 완료', cancel: '취소', refund: '환불' };
+
+  views.orders = async () => {
+    const d = await api('/orders');
+    $('#view').innerHTML = `<h1>주문 관리 <span class="muted small">상태 변경·송장 입력 · 누적 매출 ${fmt(d.sum)}원</span></h1>
+<div class="toolbar"><input id="oq" placeholder="주문번호·이름·연락처 검색" style="min-width:240px">
+  <select id="ost"><option value="">전체 상태</option>${Object.entries(OSTAT).map(([k, v]) => `<option value="${k}">${v} (${d.counts[k] || 0})</option>`).join('')}</select></div>
+<div class="tbl"><table><thead><tr><th>주문번호</th><th>주문일</th><th>주문자</th><th>상품</th><th class="num">결제금액</th><th>결제</th><th>상태</th><th>송장</th></tr></thead><tbody id="oRows">
+${d.rows.map(o => `<tr data-id="${o.id}">
+  <td><b>${esc(o.order_no)}</b><br><small class="muted">${o.receive_method === 'pickup' ? '매장수령' : (esc(o.addr1 || '') + ' ' + esc(o.addr2 || ''))}</small></td>
+  <td class="small">${dt(o.created_at)}</td>
+  <td>${esc(o.buyer_name)}<br><small class="muted">${esc(o.buyer_phone)}</small></td>
+  <td class="small">${o.items.map(i => `${esc(i.name)}${i.option_text ? ' (' + esc(i.option_text) + ')' : ''} × ${i.qty}`).join('<br>')}</td>
+  <td class="num">${fmt(o.total)}<br><small class="muted">${o.point_used ? '적립 -' + fmt(o.point_used) : ''}${o.coupon_discount ? ' 쿠폰 -' + fmt(o.coupon_discount) : ''}</small></td>
+  <td class="small">${o.pay_method === 'card' ? '카드' : '무통장'}</td>
+  <td><select data-ost="${o.id}">${Object.entries(OSTAT).map(([k, v]) => `<option value="${k}"${o.status === k ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
+  <td><input data-oc="${o.id}" value="${esc(o.courier || '')}" placeholder="택배사" style="width:90px"><input data-otn="${o.id}" value="${esc(o.tracking_no || '')}" placeholder="운송장" style="width:130px"><button class="btn sm" data-osave="${o.id}">저장</button></td>
+</tr>`).join('') || '<tr><td colspan="8" class="muted">주문이 없습니다.</td></tr>'}
+</tbody></table></div>`;
+    const reload = async () => { const q = $('#oq').value.trim(); const st = $('#ost').value; const r = await api(`/orders?q=${encodeURIComponent(q)}&status=${st}`); d.rows = r.rows; views.orders(); };
+    $('#oq').onchange = reload; $('#ost').onchange = reload;
+    $$('[data-ost]').forEach(sel => sel.onchange = async () => { await api('/orders/' + sel.dataset.ost, { method: 'POST', body: { status: sel.value } }); toast('상태 변경'); });
+    $$('[data-osave]').forEach(b => b.onclick = () => busy(b, async () => {
+      const id = b.dataset.osave;
+      await api('/orders/' + id, { method: 'POST', body: { courier: $(`[data-oc="${id}"]`).value, tracking_no: $(`[data-otn="${id}"]`).value } });
+      toast('송장 저장');
+    }));
+  };
+
+  views.members = async () => {
+    const d = await api('/members');
+    $('#view').innerHTML = `<h1>회원 관리 <span class="muted small">총 ${fmt(d.total)}명</span></h1>
+<div class="toolbar"><input id="mq" placeholder="이름·이메일·연락처 검색" style="min-width:240px"></div>
+<div class="tbl"><table><thead><tr><th>회원</th><th>연락처</th><th>가입일</th><th class="num">주문</th><th class="num">적립금</th><th>메모</th><th></th></tr></thead><tbody>
+${d.rows.map(m => `<tr>
+  <td><b>${esc(m.name)}</b><br><small class="muted">${esc(m.email)}</small></td>
+  <td class="small">${esc(m.phone || '-')}<br><small class="muted">${esc(m.addr1 || '')}</small></td>
+  <td class="small">${d8(m.created_at)}</td>
+  <td class="num">${m.orders.c}건<br><small class="muted">${fmt(m.orders.t)}원</small></td>
+  <td class="num">${fmt(m.points)}</td>
+  <td><input data-memo="${m.id}" value="${esc(m.memo || '')}" placeholder="메모" style="width:150px"></td>
+  <td><button class="btn sm" data-pt="${m.id}">적립금 조정</button><button class="btn sm" data-msave="${m.id}">메모 저장</button></td>
+</tr>`).join('') || '<tr><td colspan="7" class="muted">회원이 없습니다.</td></tr>'}
+</tbody></table></div>`;
+    $('#mq').onchange = async () => { const r = await api('/members?q=' + encodeURIComponent($('#mq').value.trim())); d.rows = r.rows; views.members(); };
+    $$('[data-pt]').forEach(b => b.onclick = async () => {
+      const v = prompt('적립금 조정 금액 (지급 +, 차감 -)', '1000'); if (v === null) return;
+      const why = prompt('사유', '관리자 지급') || '관리자 지급';
+      const r = await api(`/members/${b.dataset.pt}/points`, { method: 'POST', body: { amount: Number(v), reason: why } });
+      toast('적립금 ' + fmt(r.points) + '원'); views.members();
+    });
+    $$('[data-msave]').forEach(b => b.onclick = () => busy(b, async () => { await api(`/members/${b.dataset.msave}/memo`, { method: 'POST', body: { memo: $(`[data-memo="${b.dataset.msave}"]`).value } }); toast('메모 저장'); }));
+  };
+
+  views.shop = async () => {
+    const [coupons, banners, qna, st] = await Promise.all([api('/coupons'), api('/banners'), api('/qna'), api('/settings')]);
+    const s = st.settings || st;
+    $('#view').innerHTML = `<h1>쇼핑몰 설정 <span class="muted small">배송·적립·계좌·배너·쿠폰·1:1 문의</span></h1>
+<div class="card"><h3 style="margin-top:0">기본 설정</h3>
+  <form id="shopForm" class="form"><div class="row3">
+    <label>기본 배송비(원) <input name="shipping_fee" type="number" value="${esc(s.shipping_fee)}"></label>
+    <label>무료배송 기준(원) <input name="free_ship_over" type="number" value="${esc(s.free_ship_over)}"></label>
+    <label>적립률(%) <input name="point_rate_pct" type="number" step="0.1" value="${esc(s.point_rate_pct)}"></label></div>
+    <label>입금 계좌 안내 <textarea name="bank_info" style="min-height:70px" placeholder="예: 국민은행 123456-78-901234 (예금주 문강금은)">${esc(s.bank_info)}</textarea></label>
+    <label>메인 인기 키워드 (쉼표로 구분) <input name="popular_keywords" value="${esc(s.popular_keywords)}"></label>
+    <div class="row"><label>토스페이먼츠 클라이언트 키 <input name="pg_client_key" value="${esc(s.pg_client_key)}" placeholder="입력하면 카드결제가 열립니다"></label>
+      <label>시크릿 키 <input name="pg_secret_key" value="${esc(s.pg_secret_key)}" type="password"></label></div>
+    <button class="btn primary">저장</button></form></div>
+
+<div class="card"><div class="toolbar"><h3 style="margin:0">메인 배너</h3><span class="sp"></span><button class="btn sm gold" id="addBanner">+ 배너 추가</button></div>
+<div class="tbl"><table><thead><tr><th>이미지</th><th>구역</th><th>문구</th><th>링크</th><th>글자색</th><th>순서</th><th>표시</th><th></th></tr></thead><tbody>
+${banners.map(b => `<tr><td><img src="${esc(b.image)}" style="width:120px;border-radius:6px"></td><td>${b.slot === 'main' ? '메인 슬라이드' : b.slot === 'limited' ? '한정 상품' : '컬렉션'}</td>
+<td class="small"><b>${esc(b.title || '')}</b><br>${esc(b.subtitle || '')}</td><td class="small">${esc(b.btn_text || '')}<br>${esc(b.href || '')}</td>
+<td class="small">${b.theme === 'light' ? '흰 글자' : '검정 글자'}</td><td class="num">${b.sort}</td><td>${b.active ? '✓' : '-'}</td>
+<td><button class="btn sm" data-bedit="${b.id}">편집</button><button class="btn sm danger" data-bdel="${b.id}">삭제</button></td></tr>`).join('') || '<tr><td colspan="8" class="muted">배너가 없습니다.</td></tr>'}
+</tbody></table></div></div>
+
+<div class="card"><div class="toolbar"><h3 style="margin:0">쿠폰</h3><span class="sp"></span><button class="btn sm gold" id="addCoupon">+ 쿠폰 추가</button></div>
+<div class="tbl"><table><thead><tr><th>번호</th><th>이름</th><th>할인</th><th class="num">최소금액</th><th class="num">사용</th><th>상태</th><th></th></tr></thead><tbody>
+${coupons.map(c => `<tr><td><b>${esc(c.code)}</b></td><td>${esc(c.name)}</td><td>${c.kind === 'percent' ? c.value + '%' : fmt(c.value) + '원'}</td><td class="num">${fmt(c.min_total)}</td>
+<td class="num">${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td><td>${c.active ? '사용' : '중지'}</td>
+<td><button class="btn sm danger" data-cdel="${c.id}">삭제</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">쿠폰이 없습니다.</td></tr>'}
+</tbody></table></div></div>
+
+<div class="card"><h3 style="margin-top:0">1:1 문의</h3>
+<div class="tbl"><table><thead><tr><th>등록</th><th>작성자</th><th>유형</th><th>내용</th><th>답변</th><th></th></tr></thead><tbody>
+${qna.map(q => `<tr><td class="small">${dt(q.created_at)}</td><td class="small">${esc(q.name)}<br>${esc(q.phone || '')}</td><td class="small">${esc(q.kind)}</td>
+<td class="small"><b>${esc(q.title)}</b><br>${esc(q.body)}</td>
+<td><textarea data-qa="${q.id}" style="min-height:60px;width:220px">${esc(q.answer || '')}</textarea></td>
+<td><button class="btn sm" data-qsave="${q.id}">답변 저장</button><button class="btn sm danger" data-qdel="${q.id}">삭제</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">문의가 없습니다.</td></tr>'}
+</tbody></table></div></div>`;
+
+    $('#shopForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const o = Object.fromEntries(new FormData(e.target));
+      await api('/shop-settings', { method: 'POST', body: o }); toast('저장했습니다');
+    };
+    const bannerForm = (b) => {
+      b = b || {};
+      modal(`<h2>${b.id ? '배너 편집' : '배너 추가'}</h2><form class="form" id="bf"><input type="hidden" name="id" value="${b.id || ''}">
+<div class="row3"><label>구역 <select name="slot"><option value="main"${b.slot === 'main' ? ' selected' : ''}>메인 슬라이드</option><option value="collection"${b.slot === 'collection' ? ' selected' : ''}>컬렉션(GOLD COLLECTION)</option><option value="limited"${b.slot === 'limited' ? ' selected' : ''}>한정 상품</option></select></label>
+<label>글자색 <select name="theme"><option value="dark"${b.theme !== 'light' ? ' selected' : ''}>검정</option><option value="light"${b.theme === 'light' ? ' selected' : ''}>흰색</option></select></label>
+<label>순서 <input name="sort" type="number" value="${b.sort || 0}"></label></div>
+<label>PC 이미지 URL (1920×800 권장) <input name="image" value="${esc(b.image || '')}" required> <input type="file" id="bimg" accept="image/*"></label>
+<label>모바일 이미지 URL (선택) <input name="image_m" value="${esc(b.image_m || '')}"> <input type="file" id="bimgm" accept="image/*"></label>
+<label>제목 ( / 는 줄바꿈) <input name="title" value="${esc(b.title || '')}"></label>
+<label>보조 문구 ( / 는 줄바꿈) <input name="subtitle" value="${esc(b.subtitle || '')}"></label>
+<div class="row"><label>버튼 문구 <input name="btn_text" value="${esc(b.btn_text || '')}"></label><label>이동 링크 <input name="href" value="${esc(b.href || '')}" placeholder="/products?category=goldbar"></label></div>
+<label class="check"><input type="checkbox" name="active" ${b.active === 0 ? '' : 'checked'}> 표시</label>
+<button class="btn primary">저장</button></form>`);
+      const up = async (fileInput, target) => {
+        const f = fileInput.files[0]; if (!f) return;
+        const fd = new FormData(); fd.append('file', f);
+        const r = await api('/products/upload-image', { method: 'POST', body: fd });
+        $('#bf')[target].value = r.url; toast('업로드 완료');
+      };
+      $('#bimg').onchange = () => up($('#bimg'), 'image');
+      $('#bimgm').onchange = () => up($('#bimgm'), 'image_m');
+      $('#bf').onsubmit = async (e) => {
+        e.preventDefault();
+        const o = Object.fromEntries(new FormData(e.target)); o.active = e.target.active.checked;
+        await api('/banners', { method: 'POST', body: o }); closeModal(); views.shop();
+      };
+    };
+    $('#addBanner').onclick = () => bannerForm();
+    $$('[data-bedit]').forEach(b => b.onclick = () => bannerForm(banners.find(x => String(x.id) === b.dataset.bedit)));
+    $$('[data-bdel]').forEach(b => b.onclick = async () => { if (confirm('배너를 삭제할까요?')) { await api('/banners/' + b.dataset.bdel, { method: 'DELETE' }); views.shop(); } });
+    $('#addCoupon').onclick = () => {
+      modal(`<h2>쿠폰 추가</h2><form class="form" id="cf"><div class="row3">
+<label>쿠폰 번호 <input name="code" required placeholder="WELCOME10"></label><label>이름 <input name="name" required placeholder="신규 가입 할인"></label>
+<label>종류 <select name="kind"><option value="amount">정액(원)</option><option value="percent">정률(%)</option></select></label></div>
+<div class="row3"><label>할인 값 <input name="value" type="number" required></label><label>최소 주문금액 <input name="min_total" type="number" value="0"></label><label>사용 제한(횟수) <input name="usage_limit" type="number" placeholder="비우면 무제한"></label></div>
+<div class="row"><label>시작일 <input name="starts_at" type="date"></label><label>종료일 <input name="ends_at" type="date"></label></div>
+<button class="btn primary">저장</button></form>`);
+      $('#cf').onsubmit = async (e) => { e.preventDefault(); await api('/coupons', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); closeModal(); views.shop(); };
+    };
+    $$('[data-cdel]').forEach(b => b.onclick = async () => { if (confirm('쿠폰을 삭제할까요?')) { await api('/coupons/' + b.dataset.cdel, { method: 'DELETE' }); views.shop(); } });
+    $$('[data-qsave]').forEach(b => b.onclick = () => busy(b, async () => { await api('/qna/' + b.dataset.qsave, { method: 'POST', body: { answer: $(`[data-qa="${b.dataset.qsave}"]`).value } }); toast('답변 저장'); }));
+    $$('[data-qdel]').forEach(b => b.onclick = async () => { if (confirm('문의를 삭제할까요?')) { await api('/qna/' + b.dataset.qdel, { method: 'DELETE' }); views.shop(); } });
+  };
+
 })();

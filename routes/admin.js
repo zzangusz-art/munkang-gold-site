@@ -33,6 +33,7 @@ router.post('/login', (req, res) => {
 });
 router.post('/logout', (req, res) => { res.clearCookie(auth.COOKIE); res.json({ ok: true }); });
 router.use(auth.requireAdmin);
+router.use(require('./admin-shop').router);  // 주문·회원·쿠폰·배너·옵션·1:1 문의
 router.get('/me', (req, res) => res.json({ admin: req.admin }));
 router.post('/password', (req, res) => { const pw = String(req.body?.pw || ''); if (pw.length < 8) return res.status(400).json({ error: '8자 이상' }); auth.changePw(req.admin.id, pw); res.json({ ok: true }); });
 
@@ -185,7 +186,7 @@ router.get('/screenshots/file', (req, res) => { const f = path.resolve(String(re
 router.post('/screenshots/upload', upload.array('files', 40), (req, res) => { const dir = path.join(shot.SHOT_DIR, kstDate()); fs.mkdirSync(dir, { recursive: true }); let n = 0; for (const f of req.files || []) { const name = Buffer.from(f.originalname, 'latin1').toString('utf8').replace(/[^\w.가-힣-]/g, '_'); if (!/\.(png|jpe?g)$/i.test(name)) continue; fs.writeFileSync(path.join(dir, name), f.buffer); n++; } res.json({ ok: true, saved: n, dir }); });
 
 // ── 설정 ──
-const SETTING_KEYS = ['site_url', 'site_name', 'legal_name', 'en_name', 'slogan', 'phone', 'phone2', 'email', 'address', 'address_detail', 'biz_no', 'ceo', 'privacy_officer', 'founded', 'hours', 'hours_open', 'hours_close', 'youtube', 'instagram', 'threads', 'kakao_channel', 'naver_blog', 'daangn', 'inblog_url', 'old_site_url', 'naver_verification', 'google_verification', 'ga_id', 'gen_times', 'auto_generate', 'auto_publish', 'inblog_push', 'llm_provider', 'kickoff_date', 'inblog_api_key', 'quote_note', 'margin_pct', ...Object.values(providers.KEY_SETTING), ...Object.values(providers.BASEURL_SETTING), 'model_anthropic', 'model_openai', 'model_gemini', 'model_openai-compatible'];
+const SETTING_KEYS = ['shipping_fee', 'free_ship_over', 'point_rate_pct', 'bank_info', 'popular_keywords', 'pg_client_key', 'pg_secret_key', 'site_url', 'site_name', 'legal_name', 'en_name', 'slogan', 'phone', 'phone2', 'email', 'address', 'address_detail', 'biz_no', 'ceo', 'privacy_officer', 'founded', 'hours', 'hours_open', 'hours_close', 'youtube', 'instagram', 'threads', 'kakao_channel', 'naver_blog', 'daangn', 'inblog_url', 'old_site_url', 'naver_verification', 'google_verification', 'ga_id', 'gen_times', 'auto_generate', 'auto_publish', 'inblog_push', 'llm_provider', 'kickoff_date', 'inblog_api_key', 'quote_note', 'margin_pct', ...Object.values(providers.KEY_SETTING), ...Object.values(providers.BASEURL_SETTING), 'model_anthropic', 'model_openai', 'model_gemini', 'model_openai-compatible'];
 router.get('/settings', (req, res) => { const o = settings.all(); for (const k of SETTING_KEYS) if (!(k in o)) o[k] = getSetting(k, ''); for (const k of Object.keys(o)) if (/api_key/.test(k)) o[k] = o[k] ? '••••' + String(o[k]).slice(-4) : ''; o._env = { anthropic: !!process.env.ANTHROPIC_API_KEY, openai: !!process.env.OPENAI_API_KEY, gemini: !!process.env.GEMINI_API_KEY, inblog: !!process.env.INBLOG_API_KEY }; res.json(o); });
 router.post('/settings', (req, res) => { const b = req.body || {}; for (const k of SETTING_KEYS) if (k in b) { if (/api_key/.test(k) && String(b[k]).startsWith('••••')) continue; setSetting(k, b[k]); } res.json({ ok: true }); });
 
