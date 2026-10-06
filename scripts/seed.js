@@ -40,6 +40,14 @@ function seedDiamondJewelry() { return seedOnce('seed_diamond_20260916', p => p.
 // 순금 남성 라인업 1회 추가(2026-09-18)
 function seedMensLine() { return seedOnce('seed_men_20260918', p => p.men_seed); }
 // 카탈로그(14K·18K·다이아·순금) 실제 제품 1회 등록, 예시로 넣었던 주얼리 샘플은 비공개로 전환(2026-09-21)
+// 제품군 슬라이드 배너 7종 1회 등록(2026-10-06)
+function seedBanners() {
+  if (db.prepare('SELECT COUNT(*) c FROM banners').get().c) return 0;
+  const ins = db.prepare('INSERT INTO banners (slot,image,image_m,title,subtitle,btn_text,href,theme,sort,active,created_at) VALUES (?,?,?,?,?,?,?,?,?,1,?)');
+  const ts = now(); let n = 0;
+  J('banners.json').forEach((b, i) => { ins.run('main', b.image, b.image_m || '', b.title || '', b.subtitle || '', b.btn_text || '', b.href || '', b.theme || 'dark', i, ts); n++; });
+  return n;
+}
 function seedCatalog() {
   const { getSetting } = require('../db');
   if (getSetting('seed_catalog_20260921')) return 0;
@@ -91,7 +99,7 @@ function seedNotice() {
   return 1;
 }
 function seedIfEmpty(force = false) {
-  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), catalog: seedCatalog(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
+  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), catalog: seedCatalog(), banners: seedBanners(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
   if (Object.values(r).some(Boolean)) console.log('[seed]', JSON.stringify(r));
   return r;
 }

@@ -1,0 +1,65 @@
+[
+ {
+  "image": "/img/banners/b1.jpg",
+  "image_m": "/img/banners/b1-m.jpg",
+  "title": "변하지 않는 가치 / 순금이 선사하는 특별한 순간",
+  "subtitle": "시간이 지나도 변하지 않는 순수함 / 지금, 당신의 일상에 순금의 빛을 더하세요",
+  "btn_text": "순금 주얼리 더보기",
+  "href": "/products?category=women",
+  "theme": "dark"
+ },
+ {
+  "image": "/img/banners/b2.jpg",
+  "image_m": "/img/banners/b2-m.jpg",
+  "title": "시간이 지나도 변하지 않는 가치, / 순수한 금이 주는 확신",
+  "subtitle": "세대를 넘어 이어지는 금의 본질, / 가장 확실한 자산이 됩니다.",
+  "btn_text": "골드바 더보기",
+  "href": "/products?category=goldbar",
+  "theme": "dark"
+ },
+ {
+  "image": "/img/banners/b3.jpg",
+  "image_m": "/img/banners/b3-m.jpg",
+  "title": "손에 잡히는 가치, 오래 남는 선택",
+  "subtitle": "",
+  "btn_text": "실버바 더보기",
+  "href": "/products?category=silverbar",
+  "theme": "light"
+ },
+ {
+  "image": "/img/banners/b4.jpg",
+  "image_m": "/img/banners/b4-m.jpg",
+  "title": "첫 번째 생일, 특별한 선물",
+  "subtitle": "아이의 첫 순간을 기념하는",
+  "btn_text": "순금 돌선물 더보기",
+  "href": "/products?category=baby",
+  "theme": "dark"
+ },
+ {
+  "image": "/img/banners/b5.jpg",
+  "image_m": "/img/banners/b5-m.jpg",
+  "title": "일상 속에서 더 빛나는 / 프리미엄 주얼리",
+  "subtitle": "",
+  "btn_text": "14k / 18k 주얼리 더보기",
+  "href": "/products?category=jewelry",
+  "theme": "dark"
+ },
+ {
+  "image": "/img/banners/b6.jpg",
+  "image_m": "/img/banners/b6-m.jpg",
+  "title": "작은 순간에 담은 큰 가치 / 소중한 날을 오래도록 기억하게 하는",
+  "subtitle": "",
+  "btn_text": "순금 오브제 더보기",
+  "href": "/products?category=gift",
+  "theme": "dark"
+ },
+ {
+  "image": "/img/banners/b7.jpg",
+  "image_m": "/img/banners/b7-m.jpg",
+  "title": "당신의 순간을 빛나게",
+  "subtitle": "",
+  "btn_text": "다이아 더보기",
+  "href": "/products?category=jewelry",
+  "theme": "dark"
+ }
+]

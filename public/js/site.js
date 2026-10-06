@@ -224,3 +224,203 @@
   if (qty) qty.addEventListener('input', render);
   render();
 })();
+
+// ===== 온라인몰 메인 (10-06) =====
+(function () {
+  // 제품군 슬라이드 배너 — 5초 자동, 화살표·점·스와이프
+  var box = document.getElementById('mainBanner');
+  if (box) {
+    var slides = [].slice.call(box.querySelectorAll('.mb-slide'));
+    var dots = [].slice.call(box.querySelectorAll('.mb-dot'));
+    var i = 0, timer = null;
+    var show = function (n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+      dots.forEach(function (d, k) { d.classList.toggle('on', k === i); });
+    };
+    var play = function () { stop(); if (slides.length > 1) timer = setInterval(function () { show(i + 1); }, 5000); };
+    var stop = function () { if (timer) clearInterval(timer); timer = null; };
+    var prev = box.querySelector('.mb-arrow.prev'), next = box.querySelector('.mb-arrow.next');
+    if (prev) prev.addEventListener('click', function () { show(i - 1); play(); });
+    if (next) next.addEventListener('click', function () { show(i + 1); play(); });
+    dots.forEach(function (d) { d.addEventListener('click', function () { show(Number(d.dataset.go)); play(); }); });
+    var x0 = null;
+    box.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; stop(); }, { passive: true });
+    box.addEventListener('touchend', function (e) {
+      if (x0 === null) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1));
+      x0 = null; play();
+    });
+    box.addEventListener('mouseenter', stop); box.addEventListener('mouseleave', play);
+    play();
+  }
+
+  // 국제 시세 차트 (TradingView 위젯)
+  var tv = document.getElementById('tvChart');
+  if (tv) {
+    var draw = function () {
+      var sym = tv.dataset.sym, range = tv.dataset.range;
+      var cfg = { symbol: sym, interval: range === '1D' ? '15' : range === '5D' ? '60' : 'D', range: range, timezone: 'Asia/Seoul', theme: 'light', style: '2', locale: 'kr', hide_side_toolbar: true, allow_symbol_change: false, save_image: false, calendar: false, support_host: 'https://www.tradingview.com' };
+      tv.innerHTML = '<iframe title="국제 시세 차트" scrolling="no" allowtransparency="true" frameborder="0" src="https://s.tradingview.com/widgetembed/?' +
+        'symbol=' + encodeURIComponent(sym) + '&interval=' + cfg.interval + '&range=' + range + '&timezone=Asia%2FSeoul&theme=light&style=2&locale=kr&hide_side_toolbar=1&allow_symbol_change=0&save_image=0&calendar=0' + '"></iframe>';
+    };
+    [].forEach.call(document.querySelectorAll('.intl-tab'), function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.intl-tab').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on'); tv.dataset.range = b.dataset.range; draw();
+      });
+    });
+    [].forEach.call(document.querySelectorAll('.intl-card'), function (c) {
+      c.addEventListener('click', function () {
+        document.querySelectorAll('.intl-card').forEach(function (x) { x.classList.remove('on'); });
+        c.classList.add('on'); tv.dataset.sym = c.dataset.sym; draw();
+      });
+    });
+    draw();
+  }
+
+  // 탭형 진열(BEST/PICKS, 인기 키워드)
+  var tabSwitch = function (btnSel, paneAttr, keyAttr) {
+    [].forEach.call(document.querySelectorAll(btnSel), function (b) {
+      b.addEventListener('click', function () {
+        var key = b.dataset[keyAttr];
+        document.querySelectorAll(btnSel).forEach(function (x) { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+        b.classList.add('on'); b.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('[' + paneAttr + ']').forEach(function (p) { p.classList.toggle('on', p.getAttribute(paneAttr) === key); });
+      });
+    });
+  };
+  tabSwitch('.pick-tab', 'data-pane', 'pick');
+  tabSwitch('.kw-tab', 'data-kwpane', 'kw');
+
+  // 후기 가로 슬라이드
+  var strip = document.querySelector('.rv-strip');
+  if (strip) {
+    var pos = 0;
+    var step = function (dir) {
+      var w = strip.firstElementChild ? strip.firstElementChild.offsetWidth + 14 : 300;
+      var max = Math.max(0, strip.scrollWidth - strip.parentElement.offsetWidth);
+      pos = Math.min(max, Math.max(0, pos + dir * w * 2));
+      strip.style.transform = 'translateX(' + -pos + 'px)';
+    };
+    var pv = document.querySelector('.rv-prev'), nx = document.querySelector('.rv-next');
+    if (pv) pv.addEventListener('click', function () { step(-1); });
+    if (nx) nx.addEventListener('click', function () { step(1); });
+  }
+})();
+
+// ===== 쇼핑 (상세·장바구니·주문서·회원) =====
+(function () {
+  var api = function (url, body, method) {
+    return fetch('/api/shop' + url, {
+      method: method || (body ? 'POST' : 'GET'),
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    }).then(function (r) { return r.json().then(function (j) { if (!r.ok || j.ok === false) throw new Error(j.error || '처리하지 못했습니다.'); return j; }); });
+  };
+  var won = function (n) { return Number(n || 0).toLocaleString('ko-KR') + '원'; };
+  var msg = function (el, text, bad) { if (el) { el.textContent = text; el.className = 'form-msg' + (bad ? ' bad' : ' good'); } };
+  var badge = function (n) {
+    [].forEach.call(document.querySelectorAll('.hic-n'), function (b) { b.textContent = n; b.hidden = !n; });
+    var sc = document.querySelector('.sc-cart small'); if (sc) sc.textContent = n + '개 담김';
+  };
+
+  // 상품 상세
+  var pd = document.getElementById('pdetail');
+  if (pd) {
+    var pid = Number(pd.dataset.id);
+    var selects = [].slice.call(pd.querySelectorAll('[data-opt]'));
+    var qty = document.getElementById('pdQty');
+    var priceEl = document.getElementById('pdPrice'), totalEl = document.getElementById('pdTotal');
+    var pdMsg = document.getElementById('pdMsg');
+    var unit = 0;
+    var ids = function () { return selects.map(function (s) { return Number(s.value); }).filter(Boolean); };
+    var refresh = function () {
+      api('/price', { product_id: pid, option_ids: ids() }).then(function (r) {
+        unit = r.price || 0;
+        if (priceEl && r.price) priceEl.textContent = won(r.price);
+        if (totalEl) totalEl.textContent = won(unit * Math.max(1, Number(qty && qty.value) || 1));
+      }).catch(function () {});
+    };
+    selects.forEach(function (s) { s.addEventListener('change', refresh); });
+    if (qty) qty.addEventListener('input', function () { if (totalEl) totalEl.textContent = won(unit * Math.max(1, Number(qty.value) || 1)); });
+    refresh();
+    var addCart = function (then) {
+      return api('/cart', { product_id: pid, option_ids: ids(), qty: Math.max(1, Number(qty && qty.value) || 1) })
+        .then(function (r) { badge(r.count); if (then) then(); else msg(pdMsg, '장바구니에 담았습니다.'); })
+        .catch(function (e) { msg(pdMsg, e.message, true); });
+    };
+    var cb = document.getElementById('pdCart'); if (cb) cb.addEventListener('click', function () { addCart(); });
+    var bb = document.getElementById('pdBuy'); if (bb) bb.addEventListener('click', function () { addCart(function () { location.href = '/checkout'; }); });
+    var like = document.getElementById('pdLike');
+    if (like) like.addEventListener('click', function () {
+      api('/wish/' + pid, {}).then(function (r) { like.classList.toggle('on', r.liked); msg(pdMsg, r.liked ? '찜 목록에 담았습니다.' : '찜을 해제했습니다.'); })
+        .catch(function (e) { msg(pdMsg, e.message, true); });
+    });
+  }
+
+  // 장바구니
+  [].forEach.call(document.querySelectorAll('.cart-row'), function (row) {
+    var id = row.dataset.id;
+    var input = row.querySelector('input');
+    var send = function (q) { api('/cart/' + id, { qty: q }).then(function () { location.reload(); }).catch(function () {}); };
+    [].forEach.call(row.querySelectorAll('[data-qty]'), function (b) {
+      b.addEventListener('click', function () { send(Math.max(1, (Number(input.value) || 1) + Number(b.dataset.qty))); });
+    });
+    input.addEventListener('change', function () { send(Math.max(1, Number(input.value) || 1)); });
+    var del = row.querySelector('.cr-del');
+    if (del) del.addEventListener('click', function () { api('/cart/' + id, null, 'DELETE').then(function () { location.reload(); }); });
+  });
+
+  // 주문서
+  var co = document.getElementById('checkoutForm');
+  if (co) {
+    var sumBox = document.getElementById('coSum'), totalBox = document.getElementById('coTotal');
+    var addrBox = document.getElementById('addrBox');
+    var quote = function () {
+      var f = new FormData(co);
+      api('/checkout/quote', { coupon_code: f.get('coupon_code'), point_use: f.get('point_use'), receive_method: f.get('receive_method') })
+        .then(function (r) {
+          var t = r.totals;
+          sumBox.innerHTML = '<dt>상품 금액</dt><dd>' + won(t.itemsTotal) + '</dd>' +
+            '<dt>배송비</dt><dd>' + (t.shipping ? won(t.shipping) : '무료') + '</dd>' +
+            (t.discount ? '<dt>쿠폰 할인</dt><dd>-' + won(t.discount) + '</dd>' : '') +
+            (t.point ? '<dt>적립금 사용</dt><dd>-' + won(t.point) + '</dd>' : '') +
+            (t.earn ? '<dt>적립 예정</dt><dd>' + won(t.earn) + '</dd>' : '');
+          totalBox.textContent = won(t.total);
+          if (t.couponMsg && f.get('coupon_code')) msg(co.querySelector('.form-msg'), t.couponMsg, true);
+        }).catch(function () {});
+    };
+    co.addEventListener('change', function (e) {
+      if (e.target.name === 'receive_method') addrBox.style.display = e.target.value === 'pickup' ? 'none' : '';
+      quote();
+    });
+    co.addEventListener('input', function (e) { if (e.target.name === 'point_use' || e.target.name === 'coupon_code') quote(); });
+    quote();
+    co.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = co.querySelector('button[type=submit]'); btn.disabled = true;
+      var o = {}; new FormData(co).forEach(function (v, k) { o[k] = v; }); o.agree = !!co.agree.checked;
+      api('/checkout', o).then(function (r) { location.href = r.redirect; })
+        .catch(function (err) { msg(co.querySelector('.form-msg'), err.message, true); btn.disabled = false; });
+    });
+  }
+
+  // 회원·문의 폼
+  var bind = function (id, url) {
+    var f = document.getElementById(id); if (!f) return;
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var o = {}; new FormData(f).forEach(function (v, k) { o[k] = v; });
+      if (f.agree) o.agree = f.agree.checked;
+      if (f.marketing) o.marketing = f.marketing.checked;
+      var btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+      api(url, o).then(function (r) {
+        if (r.redirect) location.href = r.redirect;
+        else { msg(f.querySelector('.form-msg'), '저장했습니다.'); btn.disabled = false; if (id === 'qnaForm') f.reset(); }
+      }).catch(function (err) { msg(f.querySelector('.form-msg'), err.message, true); btn.disabled = false; });
+    });
+  };
+  bind('loginForm', '/login'); bind('signupForm', '/signup'); bind('profileForm', '/profile'); bind('qnaForm', '/qna');
+})();

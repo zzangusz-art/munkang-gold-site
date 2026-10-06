@@ -28,11 +28,11 @@ let fails = 0; const ok = (c, msg, extra = '') => { console.log(`${c ? '✔' : '
   const n = pages.filter(p => !p.includes('?')).length;
   ok(titles.size === n, 'title 전 페이지 고유', `${titles.size}/${n}`);
   ok(descs.size === n, 'description 전 페이지 고유', `${descs.size}/${n}`);
-  let r = await get('/'); ok(r.text.includes('"JewelryStore"') && r.text.includes('"Dataset"') && r.text.includes('"FAQPage"') && r.text.includes('name="keywords"') && r.text.includes('side-cta'), '홈: JewelryStore·Dataset·FAQPage·keywords·우측 상담버튼');
-  ok(r.text.includes('open.kakao.com/o/pZJxBomi') && r.text.includes('010-5005-8636') && r.text.includes('hyungtak0106'), '홈: 상담 채널 3종(오픈톡·전화·카톡ID)');
+  let r = await get('/'); ok(r.text.includes('"JewelryStore"') && r.text.includes('"FAQPage"') && r.text.includes('name="keywords"') && r.text.includes('mainbanner') && r.text.includes('lineup') && r.text.includes('side-cta'), '홈: JewelryStore·FAQPage·keywords·배너·시세 라인업');
+  ok(r.text.includes('open.kakao.com/o/pZJxBomi') && r.text.includes('010-5005-8636') && r.text.includes('href="/cart"'), '홈: 카카오톡 상담·장바구니 버튼');
   ok(r.text.includes('map.naver.com') && r.text.includes('blog.naver.com/lallapaloza') && r.text.includes('youtube.com/@munkanggold') && r.text.includes('instagram.com/munkanggold'), '홈: 네이버플레이스·블로그·유튜브·인스타 링크');
   const prod = db.prepare("SELECT slug FROM products WHERE status='published' LIMIT 1").get();
-  r = await get('/products/' + prod.slug); ok(r.status === 200 && r.text.includes('"Product"') && r.text.includes('"Offer"') && r.text.includes('적용 시세 기준시각'), 'GET /products/:slug (Product·Offer·기준시각)');
+  r = await get('/products/' + prod.slug); ok(r.status === 200 && r.text.includes('"Product"') && r.text.includes('"Offer"') && r.text.includes('id="pdCart"') && r.text.includes('id="pdBuy"'), 'GET /products/:slug (Product·Offer·장바구니·구매)');
   const post = db.prepare("SELECT slug FROM posts WHERE kind='blog' AND status='published' LIMIT 1").get();
   r = await get('/blog/' + post.slug); ok(r.status === 200 && r.text.includes('"Article"') && r.text.includes('"FAQPage"'), 'GET /blog/:slug (Article·FAQPage)');
   r = await get('/about'); ok(r.text.includes('신뢰') && r.text.includes('검증된 제품 퀄리티'), '매장 소개 인사말 삽입');

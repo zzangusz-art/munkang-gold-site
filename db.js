@@ -161,6 +161,8 @@ CREATE TABLE IF NOT EXISTS videos (
 );
 `);
 
+require('./lib/shop-schema')(db);   // 온라인몰 테이블(회원·장바구니·주문·쿠폰·배너 등)
+
 // ── 마이그레이션(기존 DB에도 안전하게 적용) ──
 const tableCols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
 function addColumn(table, name, decl) { if (!tableCols(table).includes(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${decl}`); }
@@ -171,6 +173,11 @@ db.exec("UPDATE products SET category='gift' WHERE category IN ('baby','coin')")
 db.exec("UPDATE products SET ready_today=1 WHERE ready_today=0 AND badge='오늘출발'");
 db.exec("DELETE FROM quote_history WHERE quote_id IN (SELECT id FROM quotes WHERE code='au916')");
 db.exec("DELETE FROM quotes WHERE code='au916'");
+// 돌반지·돌팔찌는 '순금 아기' 카테고리로(2026-10-06)
+if (!db.prepare("SELECT value FROM settings WHERE key='cat_baby_20261006'").get()) {
+  db.exec("UPDATE products SET category='baby' WHERE name LIKE '%돌반지%' OR name LIKE '%돌팔찌%' OR name LIKE '%아기%'");
+  db.prepare("INSERT INTO settings (key,value) VALUES ('cat_baby_20261006',?)").run(String(Math.floor(Date.now() / 1000)));
+}
 // 시세는 관리자 수기 입력이 기본(2026-09-18)
 if (!db.prepare("SELECT value FROM settings WHERE key='manual_quotes_20260918'").get()) {
   db.prepare("INSERT INTO settings (key,value) VALUES ('quote_source','manual') ON CONFLICT(key) DO UPDATE SET value='manual'").run();

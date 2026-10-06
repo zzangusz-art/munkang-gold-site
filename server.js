@@ -32,12 +32,13 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com', 'https://www.youtube.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com', 'https://www.youtube.com', 'https://wcs.naver.net'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
       fontSrc: ["'self'", 'https://cdn.jsdelivr.net', 'data:'],
       imgSrc: ["'self'", 'data:', 'https://i.ytimg.com', 'https://www.google-analytics.com', 'https://*.googleusercontent.com'],
-      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://maps.google.com'],
-      connectSrc: ["'self'", 'https://www.google-analytics.com', 'https://region1.google-analytics.com'],
+      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://maps.google.com', 'https://s.tradingview.com', 'https://www.tradingview-widget.com'],
+      connectSrc: ["'self'", 'https://www.google-analytics.com', 'https://region1.google-analytics.com', 'https://wcs.naver.net'],
+      scriptSrcAttr: null,
       objectSrc: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"], upgradeInsecureRequests: null,
     },
   },
@@ -80,6 +81,7 @@ app.use((req, res, next) => { const p = req.path.replace(/\/$/, '') || '/'; if (
 // 공개 API
 app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 240, standardHeaders: true, legacyHeaders: false }));
 app.use('/api', require('./routes/api').router);
+app.use('/api/shop', require('./routes/shop-api').router);
 
 // 관리자
 app.use('/api/admin', rateLimit({ windowMs: 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }));
@@ -88,6 +90,8 @@ app.use('/api/admin', adminRoutes.router);
 app.get(['/admin', '/admin/*'], (req, res) => { res.setHeader('X-Robots-Tag', 'noindex'); res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(PUBLIC_DIR, 'admin', 'index.html')); });
 
 // 공개 페이지
+app.use(require('./routes/pages-home').router);
+app.use(require('./routes/shop').router);
 app.use(require('./routes/pages-main').router);
 app.use(require('./routes/pages-info').router);
 app.use(require('./routes/pages-content').router);
