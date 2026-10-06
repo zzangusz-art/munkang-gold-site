@@ -122,6 +122,9 @@ router.get('/products', (req, res) => {
   if (cat === 'today') sql += ' AND ready_today=1';
   else if (cat === 'best') sql += ' AND featured=1';
   else if (cat) { sql += ' AND category=?'; args.push(cat); } if (q) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${q}%`, `%${q}%`); }
+  const TYPE_WORD = { necklace: '목걸이', earring: '귀걸이', bracelet: '팔찌', ring: '반지' };
+  const tWord = TYPE_WORD[req.query.t];
+  if (tWord) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${tWord}%`, `%${tWord}%`); }
   sql += ' ORDER BY featured DESC, sort, id';
   const rows = db.prepare(sql).all(...args); const st = quotes.stats(); const site = settings.siteUrl();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));

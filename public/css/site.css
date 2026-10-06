@@ -640,3 +640,11 @@ table.lineup .lu-na{color:var(--muted);font-size:14px}
   .cr-sum{grid-area:sum}
   .cr-del{grid-area:del}
 }
+
+/* 카테고리 하위 메뉴 (10-06) */
+.cb-item{position:relative;display:inline-flex}
+.cb-sub{position:absolute;left:-14px;top:100%;z-index:60;display:none;min-width:150px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh)}
+.cb-item:hover .cb-sub,.cb-item:focus-within .cb-sub{display:grid}
+.cb-sub a{padding:8px 12px;border-radius:8px;font-size:14px;color:var(--ink);font-weight:600}
+.cb-sub a:hover{background:var(--bg-2);text-decoration:none}
+@media (max-width:900px){.cb-sub{display:none!important}}
