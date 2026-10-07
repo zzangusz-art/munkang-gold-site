@@ -3,7 +3,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { db } = require('../db');
+const { db, getSetting } = require('../db');
 const { page, faqLd } = require('../lib/layout');
 const settings = require('../lib/settings');
 const quotes = require('../lib/quotes');
@@ -13,10 +13,20 @@ const { esc, attr, fmtNum, isoFromTs, truncate } = require('../lib/util');
 const router = express.Router();
 const FAQ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'seed', 'faq.json'), 'utf8'));
 
+// 배너 7개 제품군과 동일 (Diamond → 주얼리)
 const QUICK = [
-  ['women', '순금 여성'], ['goldbar', '골드바'], ['silverbar', '실버바'], ['baby', '순금 아기'],
-  ['jewelry', '주얼리(14K·18K)'], ['gift', '순금 기념품'], ['men', '순금 남성'],
+  ['women', '순금 주얼리', 'ring'], ['goldbar', '골드바', 'bar'], ['silverbar', '실버바', 'bar2'],
+  ['baby', '순금 돌선물', 'baby'], ['jewelry', '14K·18K 주얼리', 'neck'], ['gift', '순금 오브제', 'gift'], ['jewelry', '다이아', 'dia'],
 ];
+const QM_ICON = {
+  ring: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="20" r="7.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 11.5 12.4 6h7.2L16 11.5z" fill="currentColor"/></svg>',
+  bar: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 23h20l-3.2-9H9.2L6 23z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><rect x="10" y="8" width="12" height="4" rx="1.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>',
+  bar2: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="17" width="22" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="9" y="8.5" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>',
+  baby: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M7.5 25.5c1.7-4.3 4.9-6.4 8.5-6.4s6.8 2.1 8.5 6.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  neck: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 7c0 7.2 4 12.5 9 12.5S25 14.2 25 7" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="23.5" r="3.6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>',
+  gift: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6.5" y="13" width="19" height="12.5" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="4.5" y="8" width="23" height="5" rx="1.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 8v17.5" stroke="currentColor" stroke-width="2.2"/></svg>',
+  dia: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10.5 7h11l5 6.2L16 26 5.5 13.2 10.5 7z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M5.5 13.2h21M12 7l4 19 4-19" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>',
+};
 const PICK_TABS = [['best', 'BEST'], ['new', 'NEW'], ['gift', 'GIFT'], ['diamond', 'DIAMOND']];
 
 function pickProducts(tab, limit = 8) {
@@ -37,7 +47,10 @@ router.get('/', (req, res) => {
   const limited = bannerRows('limited')[0];
   const collection = bannerRows('collection')[0];
   const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 20').all();
-  const faqs = FAQ.slice(0, 6);
+  const faqs = (() => {
+    try { const a = JSON.parse(getSetting('home_faq_json') || '[]'); if (Array.isArray(a) && a.length) return a.filter((f) => f && f.q && f.a).slice(0, 8); } catch (_) { /* 기본 FAQ 사용 */ }
+    return FAQ.slice(0, 6);
+  })();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map((r) => [r.category, r.c]));
   const collectionItems = tagged('collection', 4).length ? tagged('collection', 4) : pickProducts('best', 4);
   const weekly = tagged('weekly', 4);
@@ -102,7 +115,7 @@ router.get('/', (req, res) => {
 </section>
 
 <section class="section quick-sec"><div class="wrap">
-  <div class="quick-menu">${QUICK.map(([k, label]) => `<a class="qm" href="/products?category=${k}"><span class="qm-ic qm-${k}" aria-hidden="true"></span><b>${label}</b><span class="qm-n">${counts[k] || 0}</span></a>`).join('')}</div>
+  <div class="quick-menu">${QUICK.map(([k, label, ic]) => `<a class="qm" href="/products?category=${k}"><span class="qm-ic">${QM_ICON[ic] || ''}</span><b>${label}</b></a>`).join('')}</div>
 </div></section>
 
 ${collection ? `<section class="section collection-sec"><div class="wrap">
@@ -136,7 +149,7 @@ ${weekly.length ? `<section class="section weekly-sec"><div class="wrap">
 
 ${reviews.length ? `<section class="section review-sec"><div class="wrap">
   <div class="sec-head"><div><h2>CUSTOMER REVIEW</h2><p class="sub">실제 구매 고객이 남긴 후기</p></div><a class="link" href="/reviews">후기 전체 →</a></div>
-  <div class="rv-slider"><div class="rv-strip">${reviews.map((r) => `<blockquote class="rv-card">${r.photos ? `<img src="${attr(JSON.parse(r.photos || '[]')[0] || '')}" alt="" loading="lazy">` : ''}<span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(truncate(r.text, 120))}</p><footer>${esc(r.name)}${r.kind ? ' · ' + esc(r.kind) : ''}</footer></blockquote>`).join('')}</div></div>
+  <div class="rv-slider"><div class="rv-strip">${reviews.map((r) => { const ph = (() => { try { return (JSON.parse(r.photos || '[]') || [])[0] || ''; } catch (_) { return ''; } })(); return `<blockquote class="rv-card">${ph ? `<img src="${attr(ph)}" alt="" loading="lazy">` : ''}<span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(truncate(r.text, 120))}</p><footer>${esc(r.name)}${r.kind ? ' · ' + esc(r.kind) : ''}</footer></blockquote>`; }).join('')}</div></div>
   <div class="rv-nav"><button type="button" class="rv-prev" aria-label="이전 후기">‹</button><button type="button" class="rv-next" aria-label="다음 후기">›</button></div>
 </div></section>` : ''}
 

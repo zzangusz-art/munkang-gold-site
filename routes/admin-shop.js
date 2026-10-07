@@ -106,6 +106,23 @@ router.post('/qna/:id', (req, res) => {
 });
 router.delete('/qna/:id', (req, res) => { db.prepare('DELETE FROM qna WHERE id=?').run(req.params.id); res.json({ ok: true }); });
 
+// ── 메인 FAQ(관리자 편집) ──
+router.get('/home-faq', (req, res) => {
+  const { getSetting } = require('../db');
+  let rows = [];
+  try { rows = JSON.parse(getSetting('home_faq_json') || '[]'); } catch (_) { rows = []; }
+  if (!Array.isArray(rows) || !rows.length) {
+    rows = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'seed', 'faq.json'), 'utf8')).slice(0, 6).map((f) => ({ q: f.q, a: f.a }));
+  }
+  res.json(rows);
+});
+router.post('/home-faq', (req, res) => {
+  const rows = (Array.isArray(req.body.rows) ? req.body.rows : []).filter((r) => r && r.q && r.a)
+    .map((r) => ({ q: String(r.q).slice(0, 200), a: String(r.a).slice(0, 2000) })).slice(0, 12);
+  setSetting('home_faq_json', JSON.stringify(rows));
+  res.json({ ok: true, count: rows.length });
+});
+
 // ── 쇼핑 설정 ──
 const SHOP_KEYS = ['shipping_fee', 'free_ship_over', 'point_rate_pct', 'bank_info', 'popular_keywords', 'pg_client_key', 'pg_secret_key'];
 router.post('/shop-settings', (req, res) => {

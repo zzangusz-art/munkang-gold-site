@@ -48,6 +48,16 @@ function seedBanners() {
   J('banners.json').forEach((b, i) => { ins.run('main', b.image, b.image_m || '', b.title || '', b.subtitle || '', b.btn_text || '', b.href || '', b.theme || 'dark', i, ts); n++; });
   return n;
 }
+// 고객 후기(매장 제공) 1회 등록 — 2026-10-07
+function seedReviews() {
+  const { getSetting, setSetting } = require('../db');
+  if (getSetting('seed_reviews_20261007')) return 0;
+  const ins = db.prepare('INSERT INTO reviews (name,rating,kind,text,source,visible,created_at,photos) VALUES (?,?,?,?,?,1,?,?)');
+  const ts = now(); let n = 0;
+  J('reviews.json').forEach((r, i) => { ins.run(r.name, r.rating || 5, r.kind || '', r.text, '매장 제공', ts - i * 86400, '[]'); n++; });
+  setSetting('seed_reviews_20261007', String(ts));
+  return n;
+}
 function seedCatalog() {
   const { getSetting } = require('../db');
   if (getSetting('seed_catalog_20260921')) return 0;
@@ -99,7 +109,7 @@ function seedNotice() {
   return 1;
 }
 function seedIfEmpty(force = false) {
-  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), catalog: seedCatalog(), banners: seedBanners(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
+  const r = { quotes: seedQuotes(), products: seedProducts(), diamond: seedDiamondJewelry(), men: seedMensLine(), catalog: seedCatalog(), banners: seedBanners(), reviews: seedReviews(), topics: seedTopics(force), plan: seedPlan(force), articles: seedArticles(), notice: seedNotice() };
   if (Object.values(r).some(Boolean)) console.log('[seed]', JSON.stringify(r));
   return r;
 }

@@ -166,6 +166,7 @@ require('./lib/shop-schema')(db);   // 온라인몰 테이블(회원·장바구�
 // ── 마이그레이션(기존 DB에도 안전하게 적용) ──
 const tableCols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
 function addColumn(table, name, decl) { if (!tableCols(table).includes(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${decl}`); }
+addColumn('admins', 'role', "TEXT NOT NULL DEFAULT 'dev'");   // dev=전체 · shop=업체 운영자
 addColumn('products', 'ready_today', 'INTEGER DEFAULT 0');   // 오늘 출발(즉시 수령) 표시
 addColumn('products', 'karat_option', 'INTEGER DEFAULT 0');  // 주얼리: 14K 기준 등록 + 18K 선택(중량 ×1.2)
 addColumn('products', 'stone_json', 'TEXT');                 // 스톤 옵션 [{name,add}] 모이사나이트·랩다이아 등
@@ -196,6 +197,13 @@ const setStmt = db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CON
 function getSetting(key, def = '') { const r = getStmt.get(key); return r ? r.value : def; }
 function setSetting(key, val) { setStmt.run(key, val == null ? '' : String(val)); }
 function allSettings() { const o = {}; for (const r of db.prepare('SELECT key,value FROM settings').all()) o[r.key] = r.value; return o; }
+
+// 업체 운영자 계정(매장 운영 메뉴만) — 최초 1회 생성, 비밀번호는 첫 로그인 후 변경
+if (!db.prepare("SELECT 1 FROM admins WHERE login_id=?").get(process.env.SHOP_ADMIN_ID || 'munkang')) {
+  db.prepare('INSERT INTO admins (login_id,pw_hash,name,role,created_at) VALUES (?,?,?,?,?)')
+    .run(process.env.SHOP_ADMIN_ID || 'munkang', bcrypt.hashSync(process.env.SHOP_ADMIN_PW || 'munkang-shop2026!', 10), '문강금은 운영자', 'shop', now());
+  console.log('[db] 업체 운영자 계정 생성: ' + (process.env.SHOP_ADMIN_ID || 'munkang'));
+}
 
 if (db.prepare('SELECT COUNT(*) c FROM admins').get().c === 0) {
   const id = process.env.ADMIN_ID || 'admin';

@@ -28,8 +28,22 @@
   $('#logout').onclick = async () => { await api('/logout', { method: 'POST' }); showLogin(); };
 
   const views = {};
+  const DEV_ONLY = ['posts', 'auto', 'plan', 'reports', 'audit', 'settings'];
+  async function applyRole() {
+    try {
+      const me = await api('/me');
+      const role = (me.admin && me.admin.role) || 'dev';
+      document.body.dataset.role = role;
+      if (role === 'shop') {
+        DEV_ONLY.forEach(v => { const a = $(`#menu a[data-v=${v}]`); if (a) a.remove(); });
+        const cur = location.hash.slice(1);
+        if (DEV_ONLY.includes(cur)) go('dash');
+      }
+    } catch (e) { /* 로그인 전 */ }
+  }
   async function go(v) { location.hash = v; $$('#menu a').forEach(a => a.classList.toggle('active', a.dataset.v === v)); $('#view').innerHTML = '<p class="muted">불러오는 중…</p>'; try { await views[v](); } catch (e) { $('#view').innerHTML = `<p class="up">${esc(e.message)}</p>`; } }
   $$('#menu a').forEach(a => a.onclick = () => go(a.dataset.v));
+  applyRole();
   window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (views[v] && !$(`#menu a[data-v=${v}]`).classList.contains('active')) go(v); });
   async function boot() { try { await api('/me'); $('#login').hidden = true; $('#app').hidden = false; go(location.hash.slice(1) || 'dash'); } catch (_) { showLogin(); } }
 
@@ -107,12 +121,12 @@
     $('#view').innerHTML = `<h1>제품 관리 <span class="muted small">${rows.length}개 · 가격 = (판매 시세/g × 순중량 + 공임) × (1+마진) · 소개글 ${rows.filter(r => r.has_body).length}개</span></h1>
 <p class="small muted">가격은 시세에 자동 연동됩니다. 고정가를 넣으면 시세와 무관하게 표시됩니다. 소개글은 자동발행이 매일 채우거나 「AI 생성」/「템플릿 생성」으로 바로 만들 수 있습니다.</p>
 <div class="toolbar"><input id="pf" placeholder="검색" style="max-width:240px"><span class="sp"></span><button class="btn gold" id="addP">+ 제품 추가</button></div>
-<div class="tbl"><table><thead><tr><th>제품</th><th>분류</th><th>순도</th><th class="num">순중량(g)</th><th class="num">공임</th><th class="num">현재 가격</th><th>뱃지</th><th>표시</th><th>소개글</th><th></th></tr></thead><tbody>${rows.map(r => `<tr data-n="${esc(r.name)}"><td><b>${esc(r.name)}</b><br><a class="small" href="/products/${esc(r.slug)}" target="_blank">보기 ↗</a></td><td>${CAT[r.category] || r.category}</td><td>${esc(r.purity)}</td><td class="num">${r.weight_g}</td><td class="num">${fmt(r.labor)}</td><td class="num"><b>${fmt(r.price)}</b>${r.price_fixed ? '<br><span class="pill muted">고정</span>' : ''}</td><td>${esc(r.badge || '')}</td><td class="small">${r.featured ? 'BEST ' : ''}${r.ready_today ? '오늘출발 ' : ''}${r.karat_option ? '14/18K' : ''}</td><td>${r.has_body ? `<span class="pill ok">${r.ai_generated ? 'AI' : '작성'}</span>` : '<span class="pill warn">없음</span>'}</td><td><button class="btn sm" data-edit="${r.id}">편집</button> <button class="btn sm" data-gen="${r.id}">AI 생성</button> <button class="btn sm" data-tpl="${r.id}">템플릿</button> <button class="btn sm danger" data-del="${r.id}">삭제</button></td></tr>`).join('')}</tbody></table></div>`;
+<div class="tbl"><table><thead><tr><th>제품</th><th>분류</th><th>순도</th><th class="num">순중량(g)</th><th class="num">공임</th><th class="num">현재 가격</th><th>뱃지</th><th>표시</th><th>소개글</th><th></th></tr></thead><tbody>${rows.map(r => `<tr data-n="${esc(r.name)}"><td><b>${esc(r.name)}</b><br><a class="small" href="/products/${esc(r.slug)}" target="_blank">보기 ↗</a></td><td>${CAT[r.category] || r.category}</td><td>${esc(r.purity)}</td><td class="num">${r.weight_g}</td><td class="num">${fmt(r.labor)}</td><td class="num"><b>${fmt(r.price)}</b>${r.price_fixed ? '<br><span class="pill muted">고정</span>' : ''}</td><td>${esc(r.badge || '')}</td><td class="small">${r.featured ? 'BEST ' : ''}${r.ready_today ? '오늘출발 ' : ''}${r.karat_option ? '14/18K' : ''}</td><td>${r.has_body ? `<span class="pill ok">${r.ai_generated ? 'AI' : '작성'}</span>` : '<span class="pill warn">없음</span>'}</td><td><button class="btn sm" data-edit="${r.id}">편집</button> <button class="btn sm" data-gen="${r.id}">AI 생성</button> <button class="btn sm" data-tpl="${r.id}">템플릿</button> <button class="btn sm" data-opts="${r.id}">옵션</button><button class="btn sm danger" data-del="${r.id}">삭제</button></td></tr>`).join('')}</tbody></table></div>`;
     $('#pf').oninput = (e) => { const v = e.target.value.trim(); $$('tbody tr').forEach(tr => tr.style.display = !v || tr.dataset.n.includes(v) ? '' : 'none'); };
     $$('[data-gen]').forEach(b => b.onclick = () => busy(b, async () => { const r = await api(`/products/${b.dataset.gen}/generate`, { method: 'POST', body: {} }); toast('생성: ' + r.post.title); views.products(); }));
     $$('[data-tpl]').forEach(b => b.onclick = () => busy(b, async () => { const r = await api(`/products/${b.dataset.tpl}/generate`, { method: 'POST', body: { template: true } }); toast('템플릿 생성: ' + r.post.title); views.products(); }));
     $$('[data-del]').forEach(b => b.onclick = async () => { if (confirm('삭제?')) { await api('/products/' + b.dataset.del, { method: 'DELETE' }); views.products(); } });
-    const form = async (id) => { const p = id ? await api('/products/' + id) : {}; modal(`<h2>${id ? '제품 편집' : '제품 추가'}</h2><form class="form" id="pform"><input type="hidden" name="id" value="${id || ''}"><div class="row3"><label>이름 <input name="name" value="${esc(p.name || '')}" required></label><label>분류 <select name="category">${Object.entries(CAT).map(([k, v]) => `<option value="${k}" ${p.category === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>slug(URL) <input name="slug" value="${esc(p.slug || '')}" placeholder="비우면 자동"></label></div><div class="row3"><label>금속 <select name="metal"><option value="gold" ${p.metal !== 'silver' ? 'selected' : ''}>금</option><option value="silver" ${p.metal === 'silver' ? 'selected' : ''}>은</option></select></label><label>순도 <input name="purity" value="${esc(p.purity || '999.9')}"></label><label>순중량(g) <input name="weight_g" type="number" step="0.001" value="${p.weight_g ?? ''}"></label></div><p class="small" id="convPrev" style="margin:-4px 0 8px;color:#8a6a1f"></p><div class="row3"><label>시세 코드 <input name="quote_code" value="${esc(p.quote_code || 'au999')}" placeholder="au999 / ag999"></label><label>공임(원) <input name="labor" type="number" value="${p.labor ?? 0}"></label><label>마진(%) 비우면 설정값 <input name="margin_pct" type="number" step="0.1" value="${p.margin_pct ?? ''}"></label></div><div class="row3"><label>고정가(원) 비우면 시세 연동 <input name="price_fixed" type="number" value="${p.price_fixed ?? ''}"></label><label>뱃지 <input name="badge" value="${esc(p.badge || '')}" placeholder="BEST / 선물추천 / NEW"></label><label>정렬 <input name="sort" type="number" value="${p.sort ?? 0}"></label></div><label>이미지 URL <input name="image" value="${esc(p.image || '')}" placeholder="/uploads/products/xxx.jpg"> <input type="file" id="pimg" accept="image/*"></label><label>한 줄 요약 <input name="summary" value="${esc(p.summary || '')}"></label><label>본문 HTML <textarea name="body_html" style="min-height:200px">${esc(p.body_html || '')}</textarea></label><label>FAQ JSON [{"q":"","a":""}] <textarea name="faq_json" style="min-height:70px">${esc(p.faq_json || '[]')}</textarea></label><div class="row3"><label class="check"><input type="checkbox" name="featured" ${p.featured ? 'checked' : ''}> BEST(홈 추천)</label><label class="check"><input type="checkbox" name="ready_today" ${p.ready_today ? 'checked' : ''}> 오늘 출발</label><label class="check"><input type="checkbox" name="karat_option" ${p.karat_option ? 'checked' : ''}> 14K 등록 + 18K 선택(중량 ×1.2)</label></div>
+    const form = async (id) => { const p = id ? await api('/products/' + id) : {}; modal(`<h2>${id ? '제품 편집' : '제품 추가'}</h2><form class="form" id="pform"><input type="hidden" name="id" value="${id || ''}"><div class="row3"><label>이름 <input name="name" value="${esc(p.name || '')}" required></label><label>분류 <select name="category">${Object.entries(CAT).map(([k, v]) => `<option value="${k}" ${p.category === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>slug(URL) <input name="slug" value="${esc(p.slug || '')}" placeholder="비우면 자동"></label></div><div class="row3"><label>금속 <select name="metal"><option value="gold" ${p.metal !== 'silver' ? 'selected' : ''}>금</option><option value="silver" ${p.metal === 'silver' ? 'selected' : ''}>은</option></select></label><label>순도 <input name="purity" value="${esc(p.purity || '999.9')}"></label><label>순중량(g) <input name="weight_g" type="number" step="0.001" value="${p.weight_g ?? ''}"></label></div><p class="small" id="convPrev" style="margin:-4px 0 8px;color:#8a6a1f"></p><div class="row3"><label>시세 코드 <input name="quote_code" value="${esc(p.quote_code || 'au999')}" placeholder="au999 / ag999"></label><label>공임(원) <input name="labor" type="number" value="${p.labor ?? 0}"></label><label>마진(%) 비우면 설정값 <input name="margin_pct" type="number" step="0.1" value="${p.margin_pct ?? ''}"></label></div><div class="row3"><label>고정가(원) 비우면 시세 연동 <input name="price_fixed" type="number" value="${p.price_fixed ?? ''}"></label><label>뱃지 <input name="badge" value="${esc(p.badge || '')}" placeholder="BEST / 선물추천 / NEW"></label><label>메인 진열 <select name="section_tag"><option value="">노출 안 함</option>${[['best', 'BEST 탭'], ['gift', 'GIFT 탭'], ['diamond', 'DIAMOND 탭'], ['collection', 'GOLD COLLECTION'], ['weekly', 'WEEKLY SPECIAL(특가)']].map(([k, v]) => `<option value="${k}" ${p.section_tag === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>정렬 <input name="sort" type="number" value="${p.sort ?? 0}"></label></div><label>이미지 URL <input name="image" value="${esc(p.image || '')}" placeholder="/uploads/products/xxx.jpg"> <input type="file" id="pimg" accept="image/*"></label><label>한 줄 요약 <input name="summary" value="${esc(p.summary || '')}"></label><label>본문 HTML <textarea name="body_html" style="min-height:200px">${esc(p.body_html || '')}</textarea></label><label>FAQ JSON [{"q":"","a":""}] <textarea name="faq_json" style="min-height:70px">${esc(p.faq_json || '[]')}</textarea></label><div class="row3"><label class="check"><input type="checkbox" name="featured" ${p.featured ? 'checked' : ''}> BEST(홈 추천)</label><label class="check"><input type="checkbox" name="ready_today" ${p.ready_today ? 'checked' : ''}> 오늘 출발</label><label class="check"><input type="checkbox" name="karat_option" ${p.karat_option ? 'checked' : ''}> 14K 등록 + 18K 선택(중량 ×1.2)</label></div>
 <label>스톤 옵션 — 한 줄에 하나, 이름=추가금액 <button type="button" class="btn sm" id="stonePreset">모이사나이트·랩다이아 넣기</button><textarea name="stone_text" style="min-height:64px" placeholder="모이사나이트=0&#10;랩다이아=300000">${(() => { try { return JSON.parse(p.stone_json || '[]').map(x => `${x.name}=${x.add || 0}`).join('\n'); } catch (e) { return ''; } })()}</textarea></label>
 <div class="row"><label>상태 <select name="status"><option value="published" ${p.status !== 'draft' ? 'selected' : ''}>공개</option><option value="draft" ${p.status === 'draft' ? 'selected' : ''}>비공개</option></select></label></div><button class="btn primary">저장</button></form>`);
       { const kf = await api('/karat').catch(() => null); const f = $('#pform');
@@ -124,6 +138,30 @@
       $('#pimg').onchange = async () => { const f = $('#pimg').files[0]; if (!f) return; const fd = new FormData(); fd.append('file', f); try { const r = await api('/products/upload-image', { method: 'POST', body: fd }); $('#pform').image.value = r.url; toast('이미지 업로드'); } catch (e) { toast(e.message, true); } };
       $('#pform').onsubmit = async (e) => { e.preventDefault(); const o = Object.fromEntries(new FormData(e.target)); o.featured = e.target.featured.checked; o.ready_today = e.target.ready_today.checked; o.karat_option = e.target.karat_option.checked;
         o.stone_json = JSON.stringify(String(o.stone_text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => { const [n, a] = l.split('='); return { name: (n || '').trim(), add: Number(String(a || '').replace(/[^\d.-]/g, '')) || 0 }; }).filter(x => x.name)); delete o.stone_text; try { JSON.parse(o.faq_json || '[]'); await api('/products', { method: 'POST', body: o }); closeModal(); toast('저장'); views.products(); } catch (err) { toast(err.message, true); } }; };
+    $$('[data-opts]').forEach(b => b.onclick = async () => {
+      const pid = b.dataset.opts;
+      const rows = await api(`/products/${pid}/options`);
+      const KINDS = [['karat', '순도(14K·18K)'], ['size', '호수·사이즈'], ['design', '디자인·색상'], ['stone', '스톤'], ['etc', '기타']];
+      const line = (o) => `<tr><td><select name="kind">${KINDS.map(([k, v]) => `<option value="${k}"${(o && o.kind) === k ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
+<td><input name="label" value="${esc(o ? o.label : '')}" placeholder="예: 18K / 12호 / 랩다이아"></td>
+<td><input name="add_price" type="number" value="${o ? o.add_price : 0}" style="width:110px"></td>
+<td><input name="weight_mult" type="number" step="0.01" value="${o && o.weight_mult ? o.weight_mult : ''}" placeholder="18K=1.2" style="width:90px"></td>
+<td><button type="button" class="btn sm danger" data-orm>삭제</button></td></tr>`;
+      modal(`<h2>상품 옵션</h2><p class="small muted">옵션은 상세페이지에서 드롭다운으로 보입니다. 추가금액은 선택 시 더해지고, 중량 배수는 18K처럼 금 중량이 달라질 때만 넣습니다.</p>
+<div class="tbl"><table><thead><tr><th>구분</th><th>옵션명</th><th class="num">추가금액(원)</th><th>중량 배수</th><th></th></tr></thead><tbody id="optRows">${(rows.length ? rows : [null]).map(line).join('')}</tbody></table></div>
+<div class="toolbar"><button class="btn sm" id="optAdd">+ 줄 추가</button><span class="sp"></span><button class="btn primary" id="optSave">저장</button></div>`);
+      const bind = () => $$('[data-orm]').forEach(x => x.onclick = () => { if ($$('#optRows tr').length > 1) x.closest('tr').remove(); });
+      bind();
+      $('#optAdd').onclick = () => { $('#optRows').insertAdjacentHTML('beforeend', line(null)); bind(); };
+      $('#optSave').onclick = (e) => busy(e.target, async () => {
+        const rows2 = $$('#optRows tr').map((tr, i) => ({
+          kind: tr.querySelector('[name=kind]').value, label: tr.querySelector('[name=label]').value.trim(),
+          add_price: tr.querySelector('[name=add_price]').value, weight_mult: tr.querySelector('[name=weight_mult]').value, sort: i,
+        })).filter(r => r.label);
+        const r = await api(`/products/${pid}/options`, { method: 'POST', body: { rows: rows2 } });
+        toast(r.count + '개 옵션 저장'); closeModal();
+      });
+    });
     $('#addP').onclick = () => form(); $$('[data-edit]').forEach(b => b.onclick = () => form(b.dataset.edit));
   };
 
@@ -183,7 +221,7 @@
     const postForm = async (id) => { if (!views._postForm) await views.posts(); $('#view').innerHTML = ''; await views.notice(); views._postForm(id, 'notice'); };
     $('#newNotice').onclick = () => views._postForm ? views._postForm(null, 'notice') : postForm(null); $$('[data-nedit]').forEach(b => b.onclick = () => views._postForm ? views._postForm(b.dataset.nedit, 'notice') : postForm(b.dataset.nedit));
     $$('[data-ndel]').forEach(b => b.onclick = async () => { if (confirm('삭제?')) { await api('/posts/' + b.dataset.ndel, { method: 'DELETE' }); views.notice(); } });
-    $('#newReview').onclick = () => { modal(`<h2>후기 추가</h2><form class="form" id="rf"><div class="row3"><label>고객 표기 <input name="name" placeholder="김OO" required></label><label>별점 <select name="rating"><option>5</option><option>4</option><option>3</option></select></label><label>구분 <input name="kind" placeholder="금 매입 / 골드바 구매 / 출장"></label></div><label>내용 <textarea name="text" required style="min-height:90px;font-family:inherit"></textarea></label><label>출처 <input name="source" placeholder="당근 / 매장 / 카카오톡"></label><button class="btn primary">추가</button></form>`); $('#rf').onsubmit = async (e) => { e.preventDefault(); await api('/reviews', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); closeModal(); views.notice(); }; };
+    $('#newReview').onclick = () => { modal(`<h2>후기 추가</h2><form class="form" id="rf"><div class="row3"><label>고객 표기 <input name="name" placeholder="김OO" required></label><label>별점 <select name="rating"><option>5</option><option>4</option><option>3</option></select></label><label>구분 <input name="kind" placeholder="금 매입 / 골드바 구매 / 출장"></label></div><label>내용 <textarea name="text" required style="min-height:90px;font-family:inherit"></textarea></label><div class="row"><label>출처 <input name="source" placeholder="매장 / 네이버 / 카카오톡"></label><label>사진 URL(선택) <input name="photo" placeholder="/uploads/products/xxx.jpg"></label></div><button class="btn primary">추가</button></form>`); $('#rf').onsubmit = async (e) => { e.preventDefault(); await api('/reviews', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); closeModal(); views.notice(); }; };
     $('#bulkReview').onclick = () => { modal(`<h2>후기 일괄 등록</h2><p class="small muted">게재 동의를 받은 실제 후기만 넣어 주세요. 한 줄에 하나씩, <b>이름 | 별점 | 구분 | 내용</b> 형식입니다. 내용만 넣으면 '고객 · 별점 5'로 저장됩니다.</p><form class="form" id="rbf"><label>후기 <textarea name="text" required style="min-height:260px;font-family:inherit" placeholder="김OO | 5 | 금 매입 | 시세 그대로 쳐주셔서 믿음이 갔어요"></textarea></label><label>출처 <input name="source" placeholder="네이버 플레이스 / 매장 / 카카오톡"></label><button class="btn primary">등록</button></form>`); $('#rbf').onsubmit = async (e) => { e.preventDefault(); const r = await api('/reviews/bulk', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); toast(r.added + '건 등록'); closeModal(); views.notice(); }; };
     $$('[data-rdel]').forEach(b => b.onclick = async () => { if (confirm('삭제?')) { await api('/reviews/' + b.dataset.rdel, { method: 'DELETE' }); views.notice(); } });
     $('#vf').onsubmit = async (e) => { e.preventDefault(); try { await api('/videos', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); toast('추가'); views.notice(); } catch (err) { toast(err.message, true); } };
@@ -327,6 +365,9 @@ ${coupons.map(c => `<tr><td><b>${esc(c.code)}</b></td><td>${esc(c.name)}</td><td
 <td><button class="btn sm danger" data-cdel="${c.id}">삭제</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">쿠폰이 없습니다.</td></tr>'}
 </tbody></table></div></div>
 
+<div class="card"><div class="toolbar"><h3 style="margin:0">메인 FAQ</h3><span class="sp"></span><button class="btn sm" id="faqAdd">+ 질문 추가</button><button class="btn primary" id="faqSave">저장</button></div>
+<div id="faqRows"></div><p class="small muted">메인 하단과 /faq 상단에 노출됩니다. 비워 두면 기본 FAQ가 보입니다.</p></div>
+
 <div class="card"><h3 style="margin-top:0">1:1 문의</h3>
 <div class="tbl"><table><thead><tr><th>등록</th><th>작성자</th><th>유형</th><th>내용</th><th>답변</th><th></th></tr></thead><tbody>
 ${qna.map(q => `<tr><td class="small">${dt(q.created_at)}</td><td class="small">${esc(q.name)}<br>${esc(q.phone || '')}</td><td class="small">${esc(q.kind)}</td>
@@ -335,6 +376,18 @@ ${qna.map(q => `<tr><td class="small">${dt(q.created_at)}</td><td class="small">
 <td><button class="btn sm" data-qsave="${q.id}">답변 저장</button><button class="btn sm danger" data-qdel="${q.id}">삭제</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">문의가 없습니다.</td></tr>'}
 </tbody></table></div></div>`;
 
+    { const faqs = await api('/home-faq');
+      const frow = (f) => `<div class="faq-row" style="display:grid;gap:6px;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:10px">
+<input name="q" value="${esc(f ? f.q : '')}" placeholder="질문"><textarea name="a" style="min-height:60px" placeholder="답변">${esc(f ? f.a : '')}</textarea>
+<div><button type="button" class="btn sm danger" data-frm>삭제</button></div></div>`;
+      const paint = (list) => { $('#faqRows').innerHTML = list.map(frow).join(''); $$('[data-frm]').forEach(b => b.onclick = () => b.closest('.faq-row').remove()); };
+      paint(faqs);
+      $('#faqAdd').onclick = () => { $('#faqRows').insertAdjacentHTML('beforeend', frow(null)); $$('[data-frm]').forEach(b => b.onclick = () => b.closest('.faq-row').remove()); };
+      $('#faqSave').onclick = (e) => busy(e.target, async () => {
+        const rows = $$('#faqRows .faq-row').map(d => ({ q: d.querySelector('[name=q]').value.trim(), a: d.querySelector('[name=a]').value.trim() })).filter(r => r.q && r.a);
+        const r = await api('/home-faq', { method: 'POST', body: { rows } }); toast(r.count + '개 FAQ 저장');
+      });
+    }
     $('#shopForm').onsubmit = async (e) => {
       e.preventDefault();
       const o = Object.fromEntries(new FormData(e.target));
