@@ -198,6 +198,13 @@ function getSetting(key, def = '') { const r = getStmt.get(key); return r ? r.va
 function setSetting(key, val) { setStmt.run(key, val == null ? '' : String(val)); }
 function allSettings() { const o = {}; for (const r of db.prepare('SELECT key,value FROM settings').all()) o[r.key] = r.value; return o; }
 
+if (!db.prepare('SELECT 1 FROM admins WHERE login_id=?').get(process.env.ADMIN_ID || 'admin')) {
+  const id = process.env.ADMIN_ID || 'admin';
+  const pw = process.env.ADMIN_PW || 'munkang1234!';
+  db.prepare('INSERT INTO admins (login_id,pw_hash,name,created_at) VALUES (?,?,?,?)').run(id, bcrypt.hashSync(pw, 10), '관리자', now());
+  console.log(`[db] 최초 관리자 생성: ${id} (비밀번호는 로그인 후 변경하세요)`);
+}
+
 // 업체 운영자 계정(매장 운영 메뉴만) — 최초 1회 생성, 비밀번호는 첫 로그인 후 변경
 if (!db.prepare("SELECT 1 FROM admins WHERE login_id=?").get(process.env.SHOP_ADMIN_ID || 'munkang')) {
   db.prepare('INSERT INTO admins (login_id,pw_hash,name,role,created_at) VALUES (?,?,?,?,?)')
@@ -205,11 +212,5 @@ if (!db.prepare("SELECT 1 FROM admins WHERE login_id=?").get(process.env.SHOP_AD
   console.log('[db] 업체 운영자 계정 생성: ' + (process.env.SHOP_ADMIN_ID || 'munkang'));
 }
 
-if (db.prepare('SELECT COUNT(*) c FROM admins').get().c === 0) {
-  const id = process.env.ADMIN_ID || 'admin';
-  const pw = process.env.ADMIN_PW || 'munkang1234!';
-  db.prepare('INSERT INTO admins (login_id,pw_hash,name,created_at) VALUES (?,?,?,?)').run(id, bcrypt.hashSync(pw, 10), '관리자', now());
-  console.log(`[db] 최초 관리자 생성: ${id} (비밀번호는 로그인 후 변경하세요)`);
-}
 
 module.exports = { db, DATA_DIR, getSetting, setSetting, allSettings };
