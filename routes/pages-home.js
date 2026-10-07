@@ -47,6 +47,7 @@ router.get('/', (req, res) => {
   const limited = bannerRows('limited')[0];
   const collection = bannerRows('collection')[0];
   const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 20').all();
+  const avgRating = reviews.length ? Math.round(reviews.reduce((x, r) => x + r.rating, 0) / reviews.length * 10) / 10 : 0;
   const faqs = (() => {
     try { const a = JSON.parse(getSetting('home_faq_json') || '[]'); if (Array.isArray(a) && a.length) return a.filter((f) => f && f.q && f.a).slice(0, 8); } catch (_) { /* 기본 FAQ 사용 */ }
     return FAQ.slice(0, 6);
@@ -148,8 +149,16 @@ ${weekly.length ? `<section class="section weekly-sec"><div class="wrap">
 </div></section>` : ''}
 
 ${reviews.length ? `<section class="section review-sec"><div class="wrap">
-  <div class="sec-head"><div><h2>CUSTOMER REVIEW</h2><p class="sub">실제 구매 고객이 남긴 후기</p></div><a class="link" href="/reviews">후기 전체 →</a></div>
-  <div class="rv-slider"><div class="rv-strip">${reviews.map((r) => { const ph = (() => { try { return (JSON.parse(r.photos || '[]') || [])[0] || ''; } catch (_) { return ''; } })(); return `<blockquote class="rv-card">${ph ? `<img src="${attr(ph)}" alt="" loading="lazy">` : ''}<span class="stars">${'★'.repeat(r.rating)}</span><p>${esc(truncate(r.text, 120))}</p><footer>${esc(r.name)}${r.kind ? ' · ' + esc(r.kind) : ''}</footer></blockquote>`; }).join('')}</div></div>
+  <div class="sec-head"><div><h2>CUSTOMER REVIEW</h2><p class="sub">문강금은에서 거래하신 고객님들의 후기 ${reviews.length}건${avgRating ? ` · 평균 ${avgRating}점` : ''}</p></div><a class="link" href="/reviews">후기 전체 →</a></div>
+  <div class="rv-slider" id="rvSlider"><div class="rv-strip">${reviews.map((r) => {
+    const pr = r.product_id ? db.prepare('SELECT slug,name,image FROM products WHERE id=?').get(r.product_id) : null;
+    const ph = (() => { try { return (JSON.parse(r.photos || '[]') || [])[0] || ''; } catch (_) { return ''; } })();
+    const img = ph || (pr && pr.image) || '';
+    return `<blockquote class="rv-card">${img ? `<a class="rv-thumb" href="${pr ? '/products/' + attr(pr.slug) : '/reviews'}"><img src="${attr(img)}" alt="${attr(pr ? pr.name : '')}" loading="lazy">${pr ? `<span class="rv-pname">${esc(pr.name)}</span>` : ''}</a>` : ''}
+      <span class="stars" aria-label="별점 ${r.rating}점">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}<b>${r.rating}.0</b></span>
+      <p>${esc(truncate(r.text, 130))}</p>
+      <footer>${esc(r.name)}${r.kind ? ' · ' + esc(r.kind) : ''}</footer></blockquote>`;
+  }).join('')}</div></div>
   <div class="rv-nav"><button type="button" class="rv-prev" aria-label="이전 후기">‹</button><button type="button" class="rv-next" aria-label="다음 후기">›</button></div>
 </div></section>` : ''}
 

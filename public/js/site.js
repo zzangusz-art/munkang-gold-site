@@ -294,20 +294,7 @@
   tabSwitch('.pick-tab', 'data-pane', 'pick');
   tabSwitch('.kw-tab', 'data-kwpane', 'kw');
 
-  // 후기 가로 슬라이드
-  var strip = document.querySelector('.rv-strip');
-  if (strip) {
-    var pos = 0;
-    var step = function (dir) {
-      var w = strip.firstElementChild ? strip.firstElementChild.offsetWidth + 14 : 300;
-      var max = Math.max(0, strip.scrollWidth - strip.parentElement.offsetWidth);
-      pos = Math.min(max, Math.max(0, pos + dir * w * 2));
-      strip.style.transform = 'translateX(' + -pos + 'px)';
-    };
-    var pv = document.querySelector('.rv-prev'), nx = document.querySelector('.rv-next');
-    if (pv) pv.addEventListener('click', function () { step(-1); });
-    if (nx) nx.addEventListener('click', function () { step(1); });
-  }
+
 })();
 
 // ===== 쇼핑 (상세·장바구니·주문서·회원) =====
@@ -423,4 +410,38 @@
     });
   };
   bind('loginForm', '/login'); bind('signupForm', '/signup'); bind('profileForm', '/profile'); bind('qnaForm', '/qna');
+})();
+
+// 후기 슬라이드 — 자동 넘김·화살표·스와이프 (10-07)
+(function () {
+  var box = document.getElementById('rvSlider');
+  if (!box) return;
+  var strip = box.querySelector('.rv-strip');
+  if (!strip || !strip.children.length) return;
+  var pos = 0, timer = null;
+  var step = function () { var c = strip.firstElementChild; return (c ? c.offsetWidth : 288) + 16; };
+  var max = function () { return Math.max(0, strip.scrollWidth - box.offsetWidth); };
+  var move = function (n) {
+    var m = max();
+    pos = n > m ? 0 : n < 0 ? m : n;
+    strip.style.transform = 'translateX(' + -pos + 'px)';
+  };
+  var page = function (dir) { move(pos + dir * step() * Math.max(1, Math.floor(box.offsetWidth / step()) - 1)); };
+  var play = function () { stop(); timer = setInterval(function () { move(pos + step()); }, 3500); };
+  var stop = function () { if (timer) clearInterval(timer); timer = null; };
+  var pv = document.querySelector('.rv-prev'), nx = document.querySelector('.rv-next');
+  if (pv) pv.addEventListener('click', function () { page(-1); play(); });
+  if (nx) nx.addEventListener('click', function () { page(1); play(); });
+  box.addEventListener('mouseenter', stop);
+  box.addEventListener('mouseleave', play);
+  var x0 = null, p0 = 0;
+  box.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; p0 = pos; stop(); }, { passive: true });
+  box.addEventListener('touchmove', function (e) {
+    if (x0 === null) return;
+    strip.style.transition = 'none';
+    move(p0 - (e.touches[0].clientX - x0));
+  }, { passive: true });
+  box.addEventListener('touchend', function () { strip.style.transition = ''; x0 = null; play(); });
+  window.addEventListener('resize', function () { move(Math.min(pos, max())); });
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) play();
 })();

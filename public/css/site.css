@@ -670,3 +670,23 @@ table.lineup .lu-na{color:var(--muted);font-size:14px}
   .mb-copy{top:auto;bottom:64px;transform:none}
   .mb-slide.on img{transform:none}
 }
+
+/* 후기 슬라이드 — 별점·관련 상품 (10-07) */
+.review-sec .rv-slider{overflow:hidden;padding:4px 2px}
+.rv-strip{display:flex;gap:16px;width:max-content;transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+.rv-card{flex:0 0 288px;margin:0;padding:0 0 18px;border:1px solid var(--line);border-radius:16px;background:#fff;display:grid;gap:10px;overflow:hidden;align-content:start}
+.rv-thumb{position:relative;display:block;aspect-ratio:4/3;overflow:hidden;background:var(--bg-2)}
+.rv-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.rv-card:hover .rv-thumb img{transform:scale(1.04)}
+.rv-pname{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.92);font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-card .stars{display:flex;align-items:center;gap:6px;padding:0 18px;color:var(--gold);font-size:15px;letter-spacing:1px}
+.rv-card .stars b{color:var(--ink);font-size:13px;letter-spacing:0}
+.rv-card p{margin:0;padding:0 18px;font-size:14.5px;line-height:1.68;color:var(--ink-2)}
+.rv-card footer{padding:0 18px;font-size:12.5px;color:var(--muted)}
+.rv-nav{display:flex;gap:8px;justify-content:center;margin-top:18px}
+.rv-nav button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:18px;color:var(--ink)}
+.rv-nav button:hover{background:var(--bg-2)}
+@media (max-width:900px){
+  .rv-card{flex-basis:252px}
+  .rv-nav{margin-top:14px}
+}
