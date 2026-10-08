@@ -52,7 +52,8 @@ app.use(cookieParser());
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const STAMP = (() => { try { return String(Math.max(...['css/site.css', 'js/site.js', 'admin/admin.js', 'admin/admin.css', 'img/og.png', 'img/hero.jpg', 'img/hero-mobile.jpg'].map(f => fs.statSync(path.join(PUBLIC_DIR, f)).mtimeMs))).slice(-8); } catch (_) { return String(Date.now()).slice(-8); } })();
 layout.setStamp(STAMP);
-app.use(express.static(PUBLIC_DIR, { maxAge: '7d', index: false, setHeaders: (res, p) => { if (/\.html$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
+// 관리자 화면 파일은 배포 즉시 반영되도록 매번 새 버전 확인(ETag) — 7일 캐시 때문에 옛 화면이 남던 문제
+app.use(express.static(PUBLIC_DIR, { maxAge: '7d', index: false, setHeaders: (res, p) => { if (/\.html$/.test(p) || /[\\/]admin[\\/]/.test(p)) res.setHeader('Cache-Control', 'no-cache'); } }));
 
 // 임시 도메인(Railway *.up.railway.app 등)으로 접속되면 검색엔진 색인 금지
 app.use((req, res, next) => {
@@ -87,7 +88,16 @@ app.use('/api/shop', require('./routes/shop-api').router);
 app.use('/api/admin', rateLimit({ windowMs: 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }));
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes.router);
-app.get(['/admin', '/admin/*'], (req, res) => { res.setHeader('X-Robots-Tag', 'noindex'); res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(PUBLIC_DIR, 'admin', 'index.html')); });
+// 관리자 첫 화면 — 스크립트·스타일 주소에 수정 시각을 붙여, 예전에 받아 둔 파일 대신 새 파일을 쓰게 한다
+app.get(['/admin', '/admin/*'], (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex'); res.setHeader('Cache-Control', 'no-cache');
+  const dir = path.join(PUBLIC_DIR, 'admin');
+  const ver = (f) => { try { return Math.floor(fs.statSync(path.join(dir, f)).mtimeMs).toString(36); } catch (_) { return '0'; } };
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8')
+    .replace('/admin/admin.js"', `/admin/admin.js?v=${ver('admin.js')}"`)
+    .replace('/admin/admin.css"', `/admin/admin.css?v=${ver('admin.css')}"`);
+  res.type('html').send(html);
+});
 
 // 공개 페이지
 app.use(require('./routes/pages-home').router);
