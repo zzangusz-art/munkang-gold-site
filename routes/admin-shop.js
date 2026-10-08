@@ -106,6 +106,50 @@ router.post('/qna/:id', (req, res) => {
 });
 router.delete('/qna/:id', (req, res) => { db.prepare('DELETE FROM qna WHERE id=?').run(req.params.id); res.json({ ok: true }); });
 
+// ── 매장 대시보드(시세·주문·회원) ──
+router.get('/shop-dash', (req, res) => {
+  const quotes = require('../lib/quotes');
+  const { kstDate } = require('../lib/util');
+  const traffic = require('../lib/traffic');
+  const today = kstDate();
+  const t0 = Math.floor(new Date(today + 'T00:00:00+09:00') / 1000);
+  const d7 = t0 - 6 * 86400;
+  const g = (sql, ...a2) => db.prepare(sql).get(...a2);
+  const st = quotes.stats();
+  res.json({
+    today,
+    quotes: { rows: st.rows.map((r) => ({ code: r.code, name: r.name, buy: r.buy, sell: r.sell, diff: r.diff, pct: r.pct })), updatedText: st.updatedText, source: require('../lib/settings').cfg('quote_source') },
+    orders: {
+      todayCount: g('SELECT COUNT(*) c FROM orders WHERE created_at>=?', t0).c,
+      todaySum: g("SELECT IFNULL(SUM(total),0) t FROM orders WHERE created_at>=? AND status NOT IN ('cancel','refund')", t0).t,
+      week: g('SELECT COUNT(*) c FROM orders WHERE created_at>=?', d7).c,
+      weekSum: g("SELECT IFNULL(SUM(total),0) t FROM orders WHERE created_at>=? AND status NOT IN ('cancel','refund')", d7).t,
+      byStatus: Object.fromEntries(db.prepare('SELECT status, COUNT(*) c FROM orders GROUP BY status').all().map((r) => [r.status, r.c])),
+      recent: db.prepare('SELECT order_no,buyer_name,total,status,created_at,receive_method FROM orders ORDER BY id DESC LIMIT 6').all(),
+    },
+    members: {
+      total: g('SELECT COUNT(*) c FROM members').c,
+      week: g('SELECT COUNT(*) c FROM members WHERE created_at>=?', d7).c,
+      points: g('SELECT IFNULL(SUM(points),0) t FROM members').t,
+      buyers: g('SELECT COUNT(DISTINCT member_id) c FROM orders WHERE member_id IS NOT NULL').c,
+      recent: db.prepare('SELECT name,email,created_at,points FROM members ORDER BY id DESC LIMIT 6').all(),
+    },
+    qna: { open: g("SELECT COUNT(*) c FROM qna WHERE answer IS NULL OR answer=''").c },
+    inquiries: { new: g("SELECT COUNT(*) c FROM inquiries WHERE status='new'").c, today: g('SELECT COUNT(*) c FROM inquiries WHERE created_at>=?', t0).c },
+    traffic: traffic.summary(7),
+  });
+});
+router.get('/traffic', (req, res) => {
+  const traffic = require('../lib/traffic');
+  const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+  res.json(traffic.summary(days));
+});
+router.get('/traffic/drill', (req, res) => {
+  const traffic = require('../lib/traffic');
+  const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+  res.json(traffic.drill(String(req.query.type || ''), String(req.query.key || ''), days));
+});
+
 // ── 메인 FAQ(관리자 편집) ──
 router.get('/home-faq', (req, res) => {
   const { getSetting } = require('../db');

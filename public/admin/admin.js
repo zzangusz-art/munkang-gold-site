@@ -45,30 +45,85 @@
   async function boot() { try { const me = await api('/me'); applyRole(me.admin); $('#login').hidden = true; $('#app').hidden = false; const v = location.hash.slice(1); go(DEV_ONLY.includes(v) && document.body.dataset.role === 'shop' ? 'dash' : (v || 'dash')); } catch (_) { showLogin(); } }
 
   // ── 대시보드 ──
+  // ===== 대시보드 (시세·주문·회원·유입) 2026-10-08 =====
+  const OST2 = { pending: '입금 대기', paid: '결제 완료', ready: '상품 준비', shipping: '배송 중', done: '배송 완료', cancel: '취소', refund: '환불' };
+  let trafficDays = 7;
+
+  function trafficCard(tr) {
+    const bar = (rows, type) => rows.length ? `<table class="drill"><tbody>${rows.map(r => {
+      const pct = tr.total ? Math.round(r.count / Math.max(1, rows[0].count) * 100) : 0;
+      return `<tr data-drill="${type}" data-key="${esc(r.key)}"><td class="dk">${esc(r.key)}</td><td class="dbar"><i style="width:${pct}%"></i></td><td class="num">${fmt(r.count)}</td></tr>`;
+    }).join('')}</tbody></table>` : '<p class="muted small">아직 기록이 없습니다.</p>';
+    const spark = tr.daily.length ? `<div class="spark">${tr.daily.map(d => {
+      const max = Math.max(1, ...tr.daily.map(x => x.human));
+      return `<i title="${d.date} 사람 ${d.human} · AI ${d.ai} · 검색 ${d.search}" style="height:${Math.round(6 + d.human / max * 30)}px"></i>`;
+    }).join('')}</div>` : '';
+    return `<div class="card"><div class="toolbar"><h3 style="margin:0">방문 유입</h3><span class="sp"></span>
+      ${[1, 7, 30].map(d => `<button class="btn sm ${trafficDays === d ? 'primary' : ''}" data-days="${d}">${d === 1 ? '오늘' : d + '일'}</button>`).join('')}</div>
+      <p class="small muted">${tr.from} ~ ${tr.to} · 사람 <b>${fmt(tr.byAgent.human || 0)}</b> · AI 크롤러 <b>${fmt(tr.byAgent['ai-bot'] || 0)}</b> · 검색 크롤러 <b>${fmt(tr.byAgent['search-bot'] || 0)}</b></p>
+      ${spark}
+      <div class="grid g2" style="margin-top:10px">
+        <div><h4>유입 채널</h4>${bar(tr.channels, 'channel')}</div>
+        <div><h4>많이 본 페이지</h4>${bar(tr.pages, 'page')}</div>
+      </div>
+      <div class="grid g2" style="margin-top:10px">
+        <div><h4>AI 답변엔진 크롤러</h4>${bar(tr.aiBots, 'bot')}</div>
+        <div><h4>검색엔진 크롤러</h4>${bar(tr.searchBots, 'bot')}</div>
+      </div>
+      <p class="small muted">행을 누르면 어떤 페이지로 들어왔는지, 어떤 날에 들어왔는지 자세히 볼 수 있습니다.</p></div>`;
+  }
+
+  function bindTraffic() {
+    $$('[data-days]').forEach(b => b.onclick = async () => { trafficDays = Number(b.dataset.days); views.dash(); });
+    $$('[data-drill]').forEach(tr2 => tr2.onclick = async () => {
+      const type = tr2.dataset.drill, key = tr2.dataset.key;
+      const d = await api(`/traffic/drill?type=${type}&key=${encodeURIComponent(key)}&days=${trafficDays}`);
+      modal(`<h2>${esc(d.title)}</h2><p class="muted small">최근 ${trafficDays === 1 ? '오늘' : trafficDays + '일'} · 방문 ${fmt(d.total)}회</p>
+${d.groups.map(g2 => `<h4>${esc(g2.label)}</h4>${g2.rows.length ? `<div class="tbl"><table><tbody>${g2.rows.map(r => `<tr><td>${esc(r.key)}</td><td class="num">${fmt(r.count)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small">기록 없음</p>'}`).join('')}`);
+    });
+  }
+
   views.dash = async () => {
-    const d = await api('/dashboard'); $('#inqBadge').hidden = !d.inquiries.new; $('#inqBadge').textContent = d.inquiries.new;
-    const tr = d.traffic; const sch = d.scheduler; const g = d.quotes.gold; const sp = d.quotes.spot;
-    $('#view').innerHTML = `<h1>대시보드 <span class="muted small">${d.today} · 프로젝트 ${d.week}주차 (${d.range.start} ~ ${d.range.end}, 착수 ${d.kickoff})</span></h1>
+    const d = await api('/shop-dash');
+    $('#inqBadge').hidden = !d.inquiries.new; $('#inqBadge').textContent = d.inquiries.new;
+    const o = d.orders, m = d.members, q = d.quotes;
+    const gold = q.rows.find(r => r.code === 'au999') || {};
+    const waiting = (o.byStatus.pending || 0) + (o.byStatus.paid || 0) + (o.byStatus.ready || 0);
+    $('#view').innerHTML = `<h1>대시보드 <span class="muted small">${d.today} 기준</span></h1>
 <div class="grid g4">
-  <div class="kpi gold"><b>${g ? fmt(g.buy) : '-'}</b><span>순금 매입가(원/돈) · ${esc(d.quotes.updatedText)} 갱신${g && g.diff ? ` · 전일 ${g.diff > 0 ? '+' : ''}${fmt(g.diff)}` : ''}</span></div>
-  <div class="kpi ${d.inquiries.new ? 'warn' : ''}"><b>${d.inquiries.new}</b><span>미처리 예약·문의 (오늘 ${d.inquiries.today} · 누적 ${d.inquiries.total})</span></div>
-  <div class="kpi"><b>${d.posts.published}</b><span>발행 콘텐츠 (초안 ${d.posts.drafts} · 인블로그 ${d.posts.inblog}${d.posts.inblogErr ? ' · 오류 ' + d.posts.inblogErr : ''})</span></div>
-  <div class="kpi ${d.audit && d.audit.score >= 80 ? 'ok' : ''}"><b>${d.audit ? d.audit.score : '-'}</b><span>기술 감사 점수 ${d.audit ? '(' + d.audit.date + ')' : '(미실행)'}</span></div>
+  <div class="kpi gold"><b>${fmt(gold.buy)}</b><span>순금 매입가(원/돈) · ${esc(q.updatedText)} 기준</span></div>
+  <div class="kpi"><b>${fmt(o.todayCount)}건</b><span>오늘 주문 · 결제 ${fmt(o.todaySum)}원</span></div>
+  <div class="kpi ${waiting ? 'warn' : ''}"><b>${fmt(waiting)}건</b><span>처리할 주문(입금대기·준비·발송 전)</span></div>
+  <div class="kpi"><b>${fmt(m.total)}명</b><span>회원 · 최근 7일 +${fmt(m.week)}명</span></div>
 </div>
+
 <div class="grid g2" style="margin-top:14px">
-  <div class="card"><h3 style="margin-top:0">시세</h3><p>국제시세 ${sp.available ? `XAU <b>$${fmt(Math.round(sp.xau))}</b>/oz · 환율 <b>${fmt(Math.round(sp.usdkrw))}</b> → 순금 환산 <b>${fmt(sp.gold_krw_don)}원/돈</b> <span class="muted small">(${esc(sp.updated_at)})</span>` : '<span class="pill warn">미조회</span>'} · 자동계산 <span class="pill ${d.quotes.autoSpot ? 'ok' : 'muted'}">${d.quotes.autoSpot ? 'ON' : 'OFF(수동)'}</span></p><p class="small muted">수동 갱신 ${d.quotes.updates}회 · 제품 ${d.products.withBody}/${d.products.total} 소개글 작성</p><div class="toolbar"><button class="btn primary sm" onclick="location.hash='quotes'">오늘 시세 입력 →</button><button class="btn sm" id="spotNow">국제시세 조회</button></div></div>
-  <div class="card"><h3 style="margin-top:0">자동발행 상태</h3>
-    <p>슬롯 <b>${sch.slots.join(', ')}</b> (KST) · 자동생성 <span class="pill ${sch.autoGenerate ? 'ok' : 'err'}">${sch.autoGenerate ? 'ON' : 'OFF'}</span> · 자동발행 <span class="pill ${sch.autoPublish ? 'ok' : 'warn'}">${sch.autoPublish ? '즉시 발행' : '초안 검토'}</span></p>
-    <p>LLM <span class="pill ${d.llm.available ? 'ok' : 'warn'}">${d.llm.available ? d.llm.label + ' / ' + d.llm.model : '키 없음 → 템플릿 모드(시세 리포트·제품 소개만)'}</span> · 인블로그 <span class="pill ${d.inblog.enabled ? 'ok' : 'warn'}">${d.inblog.enabled ? (d.inblog.push ? '연동·전송 ON' : '연동됨·전송 OFF') : 'API 키 없음'}</span></p>
-    <p class="small muted">오늘 실행: ${sch.today.map(r => `${r.slot} ${r.status}${r.detail ? '(' + r.detail + ')' : ''}`).join(' · ') || '아직 없음'}</p>
-    <div class="toolbar"><button class="btn primary sm" id="runNow">지금 슬롯 점검·실행</button><button class="btn sm" onclick="location.hash='auto'">자동발행 설정 →</button></div></div>
+  <div class="card"><div class="toolbar"><h3 style="margin:0">오늘 시세</h3><span class="sp"></span><span class="pill ${q.source === 'manual' ? 'ok' : 'warn'}">${q.source === 'manual' ? '수기 입력' : '자동 수집'}</span></div>
+    <div class="tbl"><table><thead><tr><th>종목</th><th class="num">매입가</th><th class="num">판매가</th><th class="num">전일 대비</th></tr></thead><tbody>
+    ${q.rows.map(r => `<tr><td>${esc(r.name)}</td><td class="num">${fmt(r.buy)}</td><td class="num">${r.sell ? fmt(r.sell) : '-'}</td><td class="num ${r.diff > 0 ? 'up' : r.diff < 0 ? 'down' : ''}">${r.diff ? (r.diff > 0 ? '▲' : '▼') + fmt(Math.abs(r.diff)) : '-'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="small muted">단위 원/돈(3.75g) · 저장하면 홈·상품 가격에 바로 반영됩니다.</p>
+    <div class="toolbar"><button class="btn primary sm" onclick="location.hash='quotes'">오늘 시세 입력 →</button></div></div>
+
+  <div class="card"><div class="toolbar"><h3 style="margin:0">주문 현황</h3><span class="sp"></span><button class="btn sm" onclick="location.hash='orders'">주문 관리 →</button></div>
+    <p class="small muted">최근 7일 ${fmt(o.week)}건 · 결제 ${fmt(o.weekSum)}원</p>
+    <p>${Object.entries(OST2).map(([k, v]) => `<span class="pill ${k === 'pending' && o.byStatus.pending ? 'warn' : ''}">${v} ${fmt(o.byStatus[k] || 0)}</span>`).join(' ')}</p>
+    <div class="tbl"><table><thead><tr><th>주문번호</th><th>주문자</th><th class="num">금액</th><th>상태</th></tr></thead><tbody>
+    ${o.recent.map(r => `<tr><td class="small">${esc(r.order_no)}<br><span class="muted">${dt(r.created_at)}</span></td><td class="small">${esc(r.buyer_name)}<br><span class="muted">${r.receive_method === 'pickup' ? '매장수령' : '택배'}</span></td><td class="num">${fmt(r.total)}</td><td class="small">${OST2[r.status] || r.status}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">주문이 없습니다.</td></tr>'}
+    </tbody></table></div></div>
 </div>
+
 <div class="grid g2">
-  <div class="card"><h3 style="margin-top:0">이번 주 방문</h3><p>사람 <b>${fmt(tr.byAgent.human || 0)}</b> · AI 크롤러 <b>${fmt(tr.byAgent['ai-bot'] || 0)}</b> · 검색봇 <b>${fmt(tr.byAgent['search-bot'] || 0)}</b></p><p class="small muted">AI 크롤러: ${Object.entries(tr.aiBots).map(([k, v]) => `${k} ${v}`).join(', ') || '아직 방문 없음'}</p><h3>4주 실행계획</h3>${d.plan.map(p => `<div style="margin-bottom:8px"><div class="small">${p.week}주차 ${p.d}/${p.n}</div><div class="bar"><i style="width:${Math.round(p.d / p.n * 100)}%"></i></div></div>`).join('')}<button class="btn sm" onclick="location.hash='plan'">계획 보기 →</button></div>
-  <div class="card"><h3 style="margin-top:0">최근 리포트</h3>${d.reports.length ? `<ul>${d.reports.map(r => `<li><a href="/api/admin/reports/${r.id}/html" target="_blank">${esc(r.title)}</a> <span class="muted small">${dt(r.created_at)}</span></li>`).join('')}</ul>` : '<p class="muted">아직 없음 — 리포트 메뉴에서 베이스라인을 생성하세요.</p>'}<button class="btn sm" onclick="location.hash='reports'">리포트 →</button></div>
+  <div class="card"><div class="toolbar"><h3 style="margin:0">회원 현황</h3><span class="sp"></span><button class="btn sm" onclick="location.hash='members'">회원 관리 →</button></div>
+    <p>전체 <b>${fmt(m.total)}명</b> · 최근 7일 가입 <b>${fmt(m.week)}명</b> · 구매 경험 <b>${fmt(m.buyers)}명</b> · 적립금 잔액 <b>${fmt(m.points)}원</b></p>
+    <div class="tbl"><table><thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th class="num">적립금</th></tr></thead><tbody>
+    ${m.recent.map(r => `<tr><td>${esc(r.name)}</td><td class="small">${esc(r.email)}</td><td class="small">${d8(r.created_at)}</td><td class="num">${fmt(r.points)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">가입한 회원이 없습니다.</td></tr>'}
+    </tbody></table></div>
+    ${d.qna.open ? `<p class="small"><span class="pill warn">답변 대기 1:1 문의 ${d.qna.open}건</span> <button class="btn sm" onclick="location.hash='shop'">답변하러 가기 →</button></p>` : ''}</div>
+
+  ${trafficCard(d.traffic)}
 </div>`;
-    $('#runNow').onclick = (e) => busy(e.target, async () => { const r = await api('/automation/run-now', { method: 'POST' }); toast('점검 완료: ' + (r.status.today.map(x => x.slot + ' ' + x.status).join(', ') || '실행 대상 없음')); go('dash'); });
-    $('#spotNow').onclick = (e) => busy(e.target, async () => { const r = await api('/quotes/spot/refresh', { method: 'POST' }); toast(`XAU $${r.spot.xau} · USDKRW ${r.spot.usdkrw}`); go('dash'); });
+    bindTraffic();
   };
 
   // ── 시세 ──
