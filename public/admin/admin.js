@@ -29,23 +29,20 @@
 
   const views = {};
   const DEV_ONLY = ['posts', 'auto', 'plan', 'reports', 'audit', 'settings'];
-  async function applyRole() {
-    try {
-      const me = await api('/me');
-      const role = (me.admin && me.admin.role) || 'dev';
-      document.body.dataset.role = role;
-      if (role === 'shop') {
-        DEV_ONLY.forEach(v => { const a = $(`#menu a[data-v=${v}]`); if (a) a.remove(); });
-        const cur = location.hash.slice(1);
-        if (DEV_ONLY.includes(cur)) go('dash');
-      }
-    } catch (e) { /* 로그인 전 */ }
+  // 업체 운영자(role=shop)는 매장 운영 메뉴만 본다
+  function applyRole(admin) {
+    const role = (admin && admin.role) || 'dev';
+    document.body.dataset.role = role;
+    if (role !== 'shop') return;
+    DEV_ONLY.forEach(v => { const a = $(`#menu a[data-v=${v}]`); if (a) a.remove(); });
+    const cur = location.hash.slice(1);
+    if (DEV_ONLY.includes(cur)) location.hash = 'dash';
   }
-  async function go(v) { location.hash = v; $$('#menu a').forEach(a => a.classList.toggle('active', a.dataset.v === v)); $('#view').innerHTML = '<p class="muted">불러오는 중…</p>'; try { await views[v](); } catch (e) { $('#view').innerHTML = `<p class="up">${esc(e.message)}</p>`; } }
+  async function go(v) {
+    if (document.body.dataset.role === 'shop' && DEV_ONLY.includes(v)) v = 'dash'; location.hash = v; $$('#menu a').forEach(a => a.classList.toggle('active', a.dataset.v === v)); $('#view').innerHTML = '<p class="muted">불러오는 중…</p>'; try { await views[v](); } catch (e) { $('#view').innerHTML = `<p class="up">${esc(e.message)}</p>`; } }
   $$('#menu a').forEach(a => a.onclick = () => go(a.dataset.v));
-  applyRole();
   window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (views[v] && !$(`#menu a[data-v=${v}]`).classList.contains('active')) go(v); });
-  async function boot() { try { await api('/me'); $('#login').hidden = true; $('#app').hidden = false; go(location.hash.slice(1) || 'dash'); } catch (_) { showLogin(); } }
+  async function boot() { try { const me = await api('/me'); applyRole(me.admin); $('#login').hidden = true; $('#app').hidden = false; const v = location.hash.slice(1); go(DEV_ONLY.includes(v) && document.body.dataset.role === 'shop' ? 'dash' : (v || 'dash')); } catch (_) { showLogin(); } }
 
   // ── 대시보드 ──
   views.dash = async () => {
