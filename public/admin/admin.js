@@ -126,6 +126,46 @@ ${d.groups.map(g2 => `<h4>${esc(g2.label)}</h4>${g2.rows.length ? `<div class="t
     bindTraffic();
   };
 
+  // ===== 방문 유입 (좌측 메뉴) 2026-10-08 =====
+  let tvDays = 7;
+  views.traffic = async () => {
+    const t = await api('/traffic?days=' + tvDays);
+    const maxH = Math.max(1, ...t.daily.map(d => d.human));
+    const table = (rows, type, head) => rows.length
+      ? `<div class="tbl"><table><thead><tr><th>${head}</th><th class="num">방문</th><th class="num">비중</th><th></th></tr></thead><tbody>
+${rows.map(r => `<tr data-drill="${type}" data-key="${esc(r.key)}"><td class="dk">${esc(r.key)}</td><td class="num">${fmt(r.count)}</td><td class="num">${t.total ? Math.round(r.count / t.total * 100) : 0}%</td><td class="num"><span class="muted small">자세히 →</span></td></tr>`).join('')}
+</tbody></table></div>`
+      : '<p class="muted small">아직 기록이 없습니다.</p>';
+    $('#view').innerHTML = `<h1>방문 유입 <span class="muted small">${t.from} ~ ${t.to} · 사람 기준 ${fmt(t.total)}회</span></h1>
+<div class="toolbar">${[1, 7, 30, 90].map(d => `<button class="btn sm ${tvDays === d ? 'primary' : ''}" data-tvdays="${d}">${d === 1 ? '오늘' : d + '일'}</button>`).join('')}
+  <span class="sp"></span><span class="muted small">표의 줄을 누르면 세부 내역이 열립니다.</span></div>
+<div class="grid g4">
+  <div class="kpi gold"><b>${fmt(t.byAgent.human || 0)}</b><span>사람 방문</span></div>
+  <div class="kpi"><b>${fmt(t.byAgent['ai-bot'] || 0)}</b><span>AI 답변엔진 크롤러</span></div>
+  <div class="kpi"><b>${fmt(t.byAgent['search-bot'] || 0)}</b><span>검색엔진 크롤러</span></div>
+  <div class="kpi"><b>${fmt(t.byAgent['other-bot'] || 0)}</b><span>기타 봇</span></div>
+</div>
+<div class="card" style="margin-top:14px"><h3 style="margin-top:0">날짜별 방문</h3>
+  <div class="spark big">${t.daily.map(d => `<i title="${d.date} · 사람 ${d.human} · AI ${d.ai} · 검색 ${d.search}" style="height:${Math.round(8 + d.human / maxH * 70)}px"></i>`).join('') || '<span class="muted small">기록 없음</span>'}</div>
+  <div class="tbl" style="max-height:220px"><table><thead><tr><th>날짜</th><th class="num">사람</th><th class="num">AI 크롤러</th><th class="num">검색 크롤러</th></tr></thead><tbody>
+  ${[...t.daily].reverse().map(d => `<tr><td>${d.date}</td><td class="num">${fmt(d.human)}</td><td class="num">${fmt(d.ai)}</td><td class="num">${fmt(d.search)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">기록 없음</td></tr>'}
+  </tbody></table></div></div>
+<div class="grid g2">
+  <div class="card"><h3 style="margin-top:0">유입 채널</h3><p class="small muted">손님이 어디를 거쳐 들어왔는지입니다. '직접 유입'은 주소를 바로 입력했거나 즐겨찾기로 들어온 경우입니다.</p>${table(t.channels, 'channel', '채널')}</div>
+  <div class="card"><h3 style="margin-top:0">많이 본 페이지</h3>${table(t.pages, 'page', '페이지')}</div>
+</div>
+<div class="grid g2">
+  <div class="card"><h3 style="margin-top:0">AI 답변엔진 크롤러</h3><p class="small muted">ChatGPT·Perplexity·Claude 등이 사이트를 읽어 간 기록입니다. AI 검색 노출의 선행 지표입니다.</p>${table(t.aiBots, 'bot', '크롤러')}</div>
+  <div class="card"><h3 style="margin-top:0">검색엔진 크롤러</h3><p class="small muted">네이버·구글 등 검색 로봇이 수집해 간 기록입니다.</p>${table(t.searchBots, 'bot', '크롤러')}</div>
+</div>`;
+    $$('[data-tvdays]').forEach(b => b.onclick = () => { tvDays = Number(b.dataset.tvdays); views.traffic(); });
+    $$('[data-drill]').forEach(row => row.onclick = async () => {
+      const d = await api(`/traffic/drill?type=${row.dataset.drill}&key=${encodeURIComponent(row.dataset.key)}&days=${tvDays}`);
+      modal(`<h2>${esc(d.title)}</h2><p class="muted small">${t.from} ~ ${t.to} · 방문 ${fmt(d.total)}회</p>
+${d.groups.map(g2 => `<h4>${esc(g2.label)}</h4>${g2.rows.length ? `<div class="tbl"><table><tbody>${g2.rows.map(r => `<tr><td>${esc(r.key)}</td><td class="num">${fmt(r.count)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small">기록 없음</p>'}`).join('')}`);
+    });
+  };
+
   // ── 시세 ──
   views.quotes = async () => {
     const d = await api('/quotes'); const sp = d.spot; const st = d.settings;

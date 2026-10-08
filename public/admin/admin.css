@@ -38,3 +38,6 @@ pre{background:#f6f3ec;padding:10px;border-radius:8px;overflow:auto;font-size:12
 .drill .dbar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#e8cf7a,#c9a227)}
 #view h4{margin:12px 0 6px;font-size:13px;color:#6b6457}
 .num.up{color:#c0392b}.num.down{color:#1f5fbf}
+
+.spark.big{display:flex;align-items:flex-end;gap:3px;height:84px;margin:6px 0 12px}
+.spark.big i{flex:1;min-width:3px;background:linear-gradient(180deg,#e8cf7a,#c9a227);border-radius:3px 3px 0 0}
