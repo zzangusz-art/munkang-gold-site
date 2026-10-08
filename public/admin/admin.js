@@ -42,6 +42,17 @@
     if (document.body.dataset.role === 'shop' && DEV_ONLY.includes(v)) v = 'dash'; location.hash = v; $$('#menu a').forEach(a => a.classList.toggle('active', a.dataset.v === v)); $('#view').innerHTML = '<p class="muted">불러오는 중…</p>'; try { await views[v](); } catch (e) { $('#view').innerHTML = `<p class="up">${esc(e.message)}</p>`; } }
   $$('#menu a').forEach(a => a.onclick = () => go(a.dataset.v));
   window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (views[v] && !$(`#menu a[data-v=${v}]`).classList.contains('active')) go(v); });
+  // 비밀번호 변경 — 모든 관리자 계정 공통(왼쪽 아래)
+  $('#myPw').onclick = () => {
+    modal(`<h2>비밀번호 변경</h2><form class="form" id="myPwForm"><label>새 비밀번호 (8자 이상) <input name="pw" type="password" minlength="8" required autocomplete="new-password"></label>
+<label>한 번 더 입력 <input name="pw2" type="password" minlength="8" required autocomplete="new-password"></label><button class="btn primary">변경</button></form>`);
+    $('#myPwForm').onsubmit = async (e) => {
+      e.preventDefault();
+      if (e.target.pw.value !== e.target.pw2.value) return toast('두 비밀번호가 다릅니다.', true);
+      try { await api('/password', { method: 'POST', body: { pw: e.target.pw.value } }); closeModal(); toast('비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰세요.'); }
+      catch (err) { toast(err.message, true); }
+    };
+  };
   async function boot() { try { const me = await api('/me'); applyRole(me.admin); $('#login').hidden = true; $('#app').hidden = false; const v = location.hash.slice(1); go(DEV_ONLY.includes(v) && document.body.dataset.role === 'shop' ? 'dash' : (v || 'dash')); } catch (_) { showLogin(); } }
 
   // ── 대시보드 ──
@@ -428,7 +439,7 @@ ${d.rows.map(m => `<tr>
   };
 
   views.shop = async () => {
-    const [coupons, banners, qna, st] = await Promise.all([api('/coupons'), api('/banners'), api('/qna'), api('/settings')]);
+    const [coupons, banners, qna, st] = await Promise.all([api('/coupons'), api('/banners'), api('/qna'), api('/shop-settings')]);
     const s = st.settings || st;
     $('#view').innerHTML = `<h1>쇼핑몰 설정 <span class="muted small">배송·적립·계좌·배너·쿠폰·1:1 문의</span></h1>
 <div class="card"><h3 style="margin-top:0">기본 설정</h3>

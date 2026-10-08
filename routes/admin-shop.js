@@ -169,6 +169,13 @@ router.post('/home-faq', (req, res) => {
 
 // ── 쇼핑 설정 ──
 const SHOP_KEYS = ['shipping_fee', 'free_ship_over', 'point_rate_pct', 'bank_info', 'popular_keywords', 'pg_client_key', 'pg_secret_key'];
+router.get('/shop-settings', (req, res) => {
+  const { getSetting } = require('../db');
+  const settings = require('../lib/settings');
+  const o = {};
+  for (const k of SHOP_KEYS) o[k] = settings.cfg(k) ?? getSetting(k, '');
+  res.json(o);
+});
 router.post('/shop-settings', (req, res) => {
   for (const k of SHOP_KEYS) if (k in (req.body || {})) setSetting(k, req.body[k]);
   res.json({ ok: true });
