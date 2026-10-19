@@ -22,7 +22,7 @@ const STATUS = { pending: '입금 대기', paid: '결제 완료', ready: '상품
 // ── 상품 상세 (온라인몰형) ──
 router.get('/products/:slug', (req, res, next) => {
   const p = db.prepare("SELECT * FROM products WHERE slug=? AND status='published'").get(req.params.slug);
-  if (!p) return next();
+  if (!p || !quotes.sellable(p)) return next();
   const s = settings.all(); const c = ctx(req, res);
   const opts = cart.options(p.id);
   const base = cart.priceWith(p, []);

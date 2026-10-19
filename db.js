@@ -213,4 +213,17 @@ if (!db.prepare("SELECT 1 FROM admins WHERE login_id=?").get(process.env.SHOP_AD
 }
 
 
+// 사업자등록증 기준 사업자 정보·입금 계좌 1회 반영(2026-10-19, 전자결제 심사용)
+if (!getSetting('bizinfo_20261019')) {
+  const put = (k, v, onlyIfEmpty = true) => { if (!onlyIfEmpty || !getSetting(k)) setSetting(k, v); };
+  put('ceo', '강형탁');
+  put('biz_no', '794-54-00660');
+  put('email', 'hyungtak0106@gmail.com');
+  put('privacy_officer', '강형탁');
+  put('bank_info', '국민은행 408801-01-359605' + String.fromCharCode(10) + '예금주 강형탁(문강금은)');
+  const addr = getSetting('address');
+  if (!addr || addr === '서울 종로구 돈화문로5가길 1 311호') setSetting('address', '서울특별시 종로구 돈화문로5가길 1, 311호(돈의동, 피카디리플러스)');
+  setSetting('bizinfo_20261019', String(now()));
+}
+
 module.exports = { db, DATA_DIR, getSetting, setSetting, allSettings };

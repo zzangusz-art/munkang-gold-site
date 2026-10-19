@@ -452,6 +452,7 @@ ${d.rows.map(m => `<tr>
     <div class="row3"><label>토스페이먼츠 클라이언트 키 <input name="pg_client_key" value="${esc(s.pg_client_key)}" placeholder="live_gck_… / test_gck_…"></label>
       <label>시크릿 키 <input name="pg_secret_key" value="${esc(s.pg_secret_key)}" type="password" placeholder="live_gsk_… / test_gsk_…"></label>
       <label>카드 1회 한도(원) <input name="card_max_amount" type="number" value="${esc(s.card_max_amount)}"></label></div>
+    <label>상품 숨김 기준(원) — 현재 가격이 이 금액 이상인 상품은 홈페이지에서 숨깁니다. 0이면 모두 보입니다. <input name="max_product_price" type="number" value="${esc(s.max_product_price)}"></label>
     <p class="small muted">두 키를 모두 넣으면 주문서에 카드 결제가 열립니다. test_로 시작하는 키는 테스트 모드라 실제 결제가 되지 않고 주문도 완료되지 않습니다. 시크릿 키는 서버에만 저장되며 홈페이지에 노출되지 않습니다.</p>
     <button class="btn primary">저장</button></form></div>
 

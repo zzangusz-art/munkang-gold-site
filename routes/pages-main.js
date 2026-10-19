@@ -126,10 +126,13 @@ router.get('/products', (req, res) => {
   const tWord = TYPE_WORD[req.query.t];
   if (tWord) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${tWord}%`, `%${tWord}%`); }
   sql += ' ORDER BY featured DESC, sort, id';
-  const rows = db.prepare(sql).all(...args); const st = quotes.stats(); const site = settings.siteUrl();
-  const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map(r => [r.category, r.c]));
-  counts.today = db.prepare("SELECT COUNT(*) c FROM products WHERE status='published' AND ready_today=1").get().c;
-  counts.best = db.prepare("SELECT COUNT(*) c FROM products WHERE status='published' AND featured=1").get().c;
+  const rows = db.prepare(sql).all(...args).filter(quotes.sellable); const st = quotes.stats(); const site = settings.siteUrl();
+  // 탭 개수도 실제로 보이는 상품 기준(가격 숨김 기준 반영)
+  const visible = db.prepare("SELECT * FROM products WHERE status='published'").all().filter(quotes.sellable);
+  const counts = {};
+  for (const v of visible) counts[v.category] = (counts[v.category] || 0) + 1;
+  counts.today = visible.filter((v) => v.ready_today).length;
+  counts.best = visible.filter((v) => v.featured).length;
   const body = `
 <section class="page-head"><div class="wrap"><p class="eyebrow">제품</p><h1>${cat ? tabLabel(cat) : '주얼리·골드바·실버바·순금 기념품'} <small>${rows.length}개</small></h1><p class="bluf">모든 제품 가격은 ${esc(st.updatedText)} 문강금은 고시 시세(순금 판매 ${st.gold && st.gold.sell ? fmtNum(st.gold.sell) + '원/돈' : ''})에 연동되어 자동 계산되며, 결제 시점 매장 고시가가 최종 적용됩니다. 실물 귀금속 구매 시 부가세 10%가 별도이며, 구매하신 제품은 되파실 때 당일 매입 시세로 다시 매입합니다.</p>
 <div class="tabs"><a class="tab${!cat ? ' active' : ''}" href="/products">전체</a>${Object.entries(TAB_LABEL).map(([k, v]) => `<a class="tab${cat === k ? ' active' : ''}" href="/products?category=${k}">${v} ${counts[k] || 0}</a>`).join('')}</div></div></section>

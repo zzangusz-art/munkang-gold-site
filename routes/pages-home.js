@@ -31,13 +31,16 @@ const PICK_TABS = [['best', 'BEST'], ['new', 'NEW'], ['gift', 'GIFT'], ['diamond
 
 function pickProducts(tab, limit = 8) {
   const base = "SELECT * FROM products WHERE status='published'";
-  if (tab === 'best') return db.prepare(`${base} AND (featured=1 OR section_tag='best') ORDER BY sort, id LIMIT ?`).all(limit);
-  if (tab === 'new') return db.prepare(`${base} ORDER BY created_at DESC, id DESC LIMIT ?`).all(limit);
-  if (tab === 'gift') return db.prepare(`${base} AND (category IN ('gift','baby') OR section_tag='gift') ORDER BY sort, id LIMIT ?`).all(limit);
-  if (tab === 'diamond') return db.prepare(`${base} AND (section_tag='diamond' OR name LIKE '%다이아%' OR name LIKE '%모이사%' OR stone_json IS NOT NULL) ORDER BY sort, id LIMIT ?`).all(limit);
-  return db.prepare(`${base} ORDER BY sort, id LIMIT ?`).all(limit);
+  const n = limit * 4;   // 가격 기준으로 걸러낸 뒤 개수를 맞추려고 넉넉히 가져온다
+  let rows;
+  if (tab === 'best') rows = db.prepare(`${base} AND (featured=1 OR section_tag='best') ORDER BY sort, id LIMIT ?`).all(n);
+  else if (tab === 'new') rows = db.prepare(`${base} ORDER BY created_at DESC, id DESC LIMIT ?`).all(n);
+  else if (tab === 'gift') rows = db.prepare(`${base} AND (category IN ('gift','baby') OR section_tag='gift') ORDER BY sort, id LIMIT ?`).all(n);
+  else if (tab === 'diamond') rows = db.prepare(`${base} AND (section_tag='diamond' OR name LIKE '%다이아%' OR name LIKE '%모이사%' OR stone_json IS NOT NULL) ORDER BY sort, id LIMIT ?`).all(n);
+  else rows = db.prepare(`${base} ORDER BY sort, id LIMIT ?`).all(n);
+  return rows.filter(quotes.sellable).slice(0, limit);
 }
-const tagged = (tag, limit) => db.prepare("SELECT * FROM products WHERE status='published' AND section_tag=? ORDER BY sort, id LIMIT ?").all(tag, limit);
+const tagged = (tag, limit) => db.prepare("SELECT * FROM products WHERE status='published' AND section_tag=? ORDER BY sort, id LIMIT ?").all(tag, limit * 4).filter(quotes.sellable).slice(0, limit);
 const bannerRows = (slot) => db.prepare('SELECT * FROM banners WHERE slot=? AND active=1 ORDER BY sort, id').all(slot);
 const br = (s) => esc(String(s || '')).split('/').map((x) => x.trim()).filter(Boolean).join('<br>');
 
@@ -57,7 +60,7 @@ router.get('/', (req, res) => {
   const weekly = tagged('weekly', 4);
   const news = pickProducts('new', 8);
   const keywords = String(s.popular_keywords || '콩알금,돌선물,골드바,순금반지,다이아').split(',').map((k) => k.trim()).filter(Boolean).slice(0, 8);
-  const kwProducts = Object.fromEntries(keywords.map((k) => [k, db.prepare("SELECT * FROM products WHERE status='published' AND (name LIKE ? OR summary LIKE ?) ORDER BY sort, id LIMIT 4").all(`%${k}%`, `%${k}%`)]));
+  const kwProducts = Object.fromEntries(keywords.map((k) => [k, db.prepare("SELECT * FROM products WHERE status='published' AND (name LIKE ? OR summary LIKE ?) ORDER BY sort, id LIMIT 4").all(`%${k}%`, `%${k}%`).filter(quotes.sellable)]));
 
   const byCode = Object.fromEntries(st.rows.map((r) => [r.code, r]));
   const LINE = [['au999', '24K', '24K Gold'], ['au750', '18K', '18K Gold'], ['au585', '14K', '14K Gold'], ['pt999', '백금', 'Platinum'], ['ag999', '순은', 'Silver']]

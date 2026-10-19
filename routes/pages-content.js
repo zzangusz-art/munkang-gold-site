@@ -1,6 +1,7 @@
 'use strict';
 // 공개 페이지 ③ 블로그(금시세 리포트·가이드) · 공지
 const express = require('express');
+const quotes = require('../lib/quotes');
 const { db } = require('../db');
 const { page, faqLd } = require('../lib/layout');
 const settings = require('../lib/settings');
@@ -15,7 +16,7 @@ router.get('/blog', (req, res) => {
   const pageNo = Math.max(1, parseInt(req.query.page || '1', 10) || 1); const per = 12;
   const where = `kind='blog' AND status='published'${type ? ' AND type=?' : ''}`; const args = type ? [type] : [];
   const total = db.prepare(`SELECT COUNT(*) c FROM posts WHERE ${where}`).get(...args).c;
-  const rows = db.prepare(`SELECT * FROM posts WHERE ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`).all(...args, per, (pageNo - 1) * per);
+  const rows = db.prepare(`SELECT * FROM posts WHERE ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`).all(...args, per, (pageNo - 1) * per).filter(quotes.postVisible);
   const pages = Math.max(1, Math.ceil(total / per));
   const body = `<section class="page-head"><div class="wrap"><p class="eyebrow">금 정보</p><h1>${type ? TL[type] : '금시세 리포트와 금 거래 가이드'} <small>${total}건</small></h1><p class="bluf">문강금은 매장 시세로 매일 작성하는 금시세 리포트, 실제 상담에서 나온 질문을 정리한 금 매입·판매 가이드, 골드바·돌반지 제품 소개, 국제 금 시장 동향을 발행합니다. 매일 새 글이 올라오며 RSS로 구독할 수 있습니다.</p><div class="tabs"><a class="tab${!type ? ' active' : ''}" href="/blog">전체</a>${Object.entries(TL).map(([k, v]) => `<a class="tab${type === k ? ' active' : ''}" href="/blog?type=${k}">${v}</a>`).join('')}</div></div></section>
 <section class="section"><div class="wrap"><div class="post-grid">${rows.map(postCard).join('') || '<p class="note">첫 글이 곧 발행됩니다.</p>'}</div>
@@ -25,12 +26,12 @@ ${pages > 1 ? `<nav class="pager" aria-label="페이지"><ul>${Array.from({ leng
 });
 
 router.get('/blog/:slug', (req, res, next) => {
-  const p = db.prepare("SELECT * FROM posts WHERE kind='blog' AND slug=? AND status='published'").get(req.params.slug); if (!p) return next();
+  const p = db.prepare("SELECT * FROM posts WHERE kind='blog' AND slug=? AND status='published'").get(req.params.slug); if (!p || !quotes.postVisible(p)) return next();
   const s = settings.all(); const site = settings.siteUrl();
   let faqs = [], sources = [];
   try { const j = JSON.parse(p.source_urls || '[]'); if (Array.isArray(j)) sources = j; else { faqs = j.faq || []; sources = j.sources || []; } } catch (_) { /* no-op */ }
-  const related = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' AND id<>? AND type=? ORDER BY published_at DESC LIMIT 3").all(p.id, p.type);
-  const latest = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' AND id<>? ORDER BY published_at DESC LIMIT 5").all(p.id);
+  const related = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' AND id<>? AND type=? ORDER BY published_at DESC LIMIT 3").all(p.id, p.type).filter(quotes.postVisible);
+  const latest = db.prepare("SELECT * FROM posts WHERE kind='blog' AND status='published' AND id<>? ORDER BY published_at DESC LIMIT 5").all(p.id).filter(quotes.postVisible);
   const tags = (p.tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const pubDate = kstDate(new Date(p.published_at * 1000)); const modDate = kstDate(new Date(p.updated_at * 1000));
   const body = `<section class="page-head post-head"><div class="wrap narrow"><p class="eyebrow"><a href="/blog?type=${attr(p.type)}">${TL[p.type] || '가이드'}</a></p><h1>${esc(p.title)}</h1><p class="post-meta"><span>작성 ${esc(p.author || '문강금은 편집팀')}</span><time datetime="${isoFromTs(p.published_at)}">발행 ${fmtKoDate(pubDate)}</time>${modDate !== pubDate ? `<time datetime="${isoFromTs(p.updated_at)}">수정 ${fmtKoDate(modDate)}</time>` : ''}</p>${p.excerpt ? `<p class="bluf">${esc(p.excerpt)}</p>` : ''}</div></section>

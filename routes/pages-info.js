@@ -48,7 +48,7 @@ router.get('/sell', (req, res) => {
 router.get('/buy', (req, res) => {
   const st = quotes.stats(); const g = st.gold; const sv = st.silver;
   const faqs = [FAQ[5], FAQ[6], { q: '골드바는 어떤 단위가 있나요?', a: '1g, 3.75g(1돈), 10g, 37.5g(10돈), 100g 등이 있으며 단위가 클수록 그램당 공임 부담이 낮습니다. 제품 페이지에서 당일 시세 연동 가격을 확인하세요.' }, { q: '구매한 골드바를 되팔면 얼마인가요?', a: '되파는 시점의 문강금은 매입 시세(원/돈) × 순중량입니다. 보증서·케이스와 함께 보관하시면 재매입 감정이 빠릅니다.' }];
-  const goldbars = db.prepare("SELECT * FROM products WHERE status='published' AND category IN ('goldbar','silverbar') ORDER BY category DESC, weight_g").all();
+  const goldbars = db.prepare("SELECT * FROM products WHERE status='published' AND category IN ('goldbar','silverbar') ORDER BY category DESC, weight_g").all().filter(quotes.sellable);
   const sections = `
 <h2>골드바·실버바 가격은 어떻게 정해지나요?</h2>
 <p><strong>가격 = (당일 판매 시세 원/g × 순중량) + 공임</strong>이며, 홈페이지에 표시되는 가격은 <strong>부가세가 포함된 금액</strong>입니다. 오늘 순금 판매 시세는 ${g && g.sell ? fmtNum(g.sell) + '원/돈(' + fmtNum(g.sellG) + '원/g)' : '시세표 참조'}${sv && sv.sell ? `, 은 판매 시세는 ${fmtNum(sv.sell)}원/돈` : ''}입니다. 제품 페이지의 가격은 이 시세에 자동 연동되며 적용 기준시각을 표시합니다.</p>
@@ -163,7 +163,7 @@ const KW = {
 router.get('/search/:kw', (req, res, next) => {
   const kw = decodeURIComponent(req.params.kw).replace(/\s+/g, ''); const k = KW[kw]; if (!k) return next();
   const s = settings.all(); const st = quotes.stats(); const g = st.gold;
-  const prods = k.cat ? db.prepare("SELECT * FROM products WHERE status='published' AND category=? ORDER BY featured DESC, sort LIMIT 4").all(k.cat) : [];
+  const prods = k.cat ? db.prepare("SELECT * FROM products WHERE status='published' AND category=? ORDER BY featured DESC, sort LIMIT 4").all(k.cat).filter(quotes.sellable) : [];
   const { productCard } = require('./pages-main');
   const faqs = [FAQ[0], FAQ[2], FAQ[7]];
   const body = `<section class="page-head"><div class="wrap"><p class="eyebrow">${esc(kw)}</p><h1>${esc(k.h)}</h1><p class="bluf">${esc(k.a)} 오늘 순금 매입가 ${g ? fmtNum(g.buy) + '원/돈(' + fmtNum(g.buyG) + '원/g)' : '시세표 참조'}, ${esc(st.updatedText)} 갱신.</p></div></section>
