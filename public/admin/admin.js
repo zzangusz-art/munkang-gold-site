@@ -443,7 +443,10 @@ ${d.rows.map(m => `<tr>
     const s = st.settings || st;
     $('#view').innerHTML = `<h1>쇼핑몰 설정 <span class="muted small">배송·적립·계좌·배너·쿠폰·1:1 문의</span></h1>
 <div class="card"><h3 style="margin-top:0">기본 설정</h3>
-  <form id="shopForm" class="form"><div class="row3">
+  <form id="shopForm" class="form">
+    <label>판매 모드 <select name="shop_mode"><option value="jewelry"${s.shop_mode === 'jewelry' ? ' selected' : ''}>14K·18K 주얼리몰 (순금·골드바·실버바·기념품 숨김)</option><option value="gold"${s.shop_mode !== 'jewelry' ? ' selected' : ''}>금 시세 온라인몰 전체</option></select></label>
+    <p class="small muted">상품·배너는 지워지지 않습니다. 모드를 바꾸면 홈페이지 메뉴·배너·진열·시세 영역이 바로 바뀝니다.</p>
+    <div class="row3">
     <label>기본 배송비(원) <input name="shipping_fee" type="number" value="${esc(s.shipping_fee)}"></label>
     <label>무료배송 기준(원) <input name="free_ship_over" type="number" value="${esc(s.free_ship_over)}"></label>
     <label>적립률(%) <input name="point_rate_pct" type="number" step="0.1" value="${esc(s.point_rate_pct)}"></label></div>

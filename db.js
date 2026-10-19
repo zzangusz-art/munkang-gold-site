@@ -213,6 +213,14 @@ if (!db.prepare("SELECT 1 FROM admins WHERE login_id=?").get(process.env.SHOP_AD
 }
 
 
+// 14K·18K 주얼리몰로 1회 전환(2026-10-19) — 데이터는 그대로, 관리자 '판매 모드'로 되돌릴 수 있다
+if (!getSetting('mode_jewelry_20261019')) { setSetting('shop_mode', 'jewelry'); setSetting('mode_jewelry_20261019', String(now())); }
+// 주얼리몰 BEST 기본 지정(카탈로그 14K 대표 상품) — 1회
+if (!getSetting('best_jewelry_20261019')) {
+  db.prepare("UPDATE products SET featured=1 WHERE slug IN ('14k-ball-ring-2-5mm','14k-twist-ring-4-5mm','14k-bubble-necklace-42cm','14k-moissanite-tennis-bracelet-3mm','14k-diamond-5bu-stud-earrings')").run();
+  setSetting('best_jewelry_20261019', String(now()));
+}
+
 // 사업자등록증 기준 사업자 정보·입금 계좌 1회 반영(2026-10-19, 전자결제 심사용)
 if (!getSetting('bizinfo_20261019')) {
   const put = (k, v, onlyIfEmpty = true) => { if (!onlyIfEmpty || !getSetting(k)) setSetting(k, v); };

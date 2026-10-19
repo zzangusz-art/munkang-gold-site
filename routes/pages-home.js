@@ -8,6 +8,7 @@ const { page, faqLd } = require('../lib/layout');
 const settings = require('../lib/settings');
 const quotes = require('../lib/quotes');
 const { productCard } = require('../lib/cards');
+const mode = require('../lib/mode');
 const { esc, attr, fmtNum, isoFromTs, truncate } = require('../lib/util');
 
 const router = express.Router();
@@ -25,9 +26,14 @@ const QM_ICON = {
   baby: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M7.5 25.5c1.7-4.3 4.9-6.4 8.5-6.4s6.8 2.1 8.5 6.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   neck: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 7c0 7.2 4 12.5 9 12.5S25 14.2 25 7" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="23.5" r="3.6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>',
   gift: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6.5" y="13" width="19" height="12.5" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="4.5" y="8" width="23" height="5" rx="1.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 8v17.5" stroke="currentColor" stroke-width="2.2"/></svg>',
+  bracelet: '<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="17" rx="10" ry="7.5" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="9.6" r="2.2" fill="currentColor"/></svg>',
+  earring: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="8" r="2.4" fill="currentColor"/><circle cx="21" cy="8" r="2.4" fill="currentColor"/><path d="M11 10.5v4M21 10.5v4" stroke="currentColor" stroke-width="2"/><circle cx="11" cy="19.5" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="21" cy="19.5" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>',
   dia: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10.5 7h11l5 6.2L16 26 5.5 13.2 10.5 7z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M5.5 13.2h21M12 7l4 19 4-19" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>',
 };
 const PICK_TABS = [['best', 'BEST'], ['new', 'NEW'], ['gift', 'GIFT'], ['diamond', 'DIAMOND']];
+// 주얼리몰 모드: 종류별 바로가기와 탭(GIFT 대신 종류 위주)
+const QUICK_J = [['ring', '반지', 'ring'], ['necklace', '목걸이', 'neck'], ['bracelet', '팔찌', 'bracelet'], ['earring', '귀걸이', 'earring'], ['diamond', '다이아', 'dia']];
+const PICK_TABS_J = [['best', 'BEST'], ['new', 'NEW'], ['diamond', 'DIAMOND']];
 
 function pickProducts(tab, limit = 8) {
   const base = "SELECT * FROM products WHERE status='published'";
@@ -46,20 +52,27 @@ const br = (s) => esc(String(s || '')).split('/').map((x) => x.trim()).filter(Bo
 
 router.get('/', (req, res) => {
   const s = settings.all(); const st = quotes.stats(); const sp = quotes.spot();
-  const banners = bannerRows('main');
-  const limited = bannerRows('limited')[0];
-  const collection = bannerRows('collection')[0];
-  const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 20').all();
+  const J = mode.isJewelry();
+  const banners = bannerRows('main').filter(mode.allowedBanner);
+  const limited = bannerRows('limited').filter(mode.allowedBanner)[0];
+  const collection = bannerRows('collection').filter(mode.allowedBanner)[0];
+  // 후기: 주얼리몰에서는 지금 판매하는 상품에 달린 후기만
+  const reviews = db.prepare('SELECT * FROM reviews WHERE visible=1 ORDER BY id DESC LIMIT 40').all()
+    .filter((r) => { if (!J) return true; const pr = r.product_id ? db.prepare('SELECT * FROM products WHERE id=?').get(r.product_id) : null; return !!pr && quotes.sellable(pr); })
+    .slice(0, 20);
   const avgRating = reviews.length ? Math.round(reviews.reduce((x, r) => x + r.rating, 0) / reviews.length * 10) / 10 : 0;
   const faqs = (() => {
     try { const a = JSON.parse(getSetting('home_faq_json') || '[]'); if (Array.isArray(a) && a.length) return a.filter((f) => f && f.q && f.a).slice(0, 8); } catch (_) { /* 기본 FAQ 사용 */ }
-    return FAQ.slice(0, 6);
+    return J ? mode.JEWELRY_FAQ : FAQ.slice(0, 6);
   })();
   const counts = Object.fromEntries(db.prepare("SELECT category, COUNT(*) c FROM products WHERE status='published' GROUP BY category").all().map((r) => [r.category, r.c]));
   const collectionItems = tagged('collection', 4).length ? tagged('collection', 4) : pickProducts('best', 4);
   const weekly = tagged('weekly', 4);
   const news = pickProducts('new', 8);
-  const keywords = String(s.popular_keywords || '콩알금,돌선물,골드바,순금반지,다이아').split(',').map((k) => k.trim()).filter(Boolean).slice(0, 8);
+  const kwDefault = J ? '볼반지,뺑돌이,체인 목걸이,테니스 팔찌,다이아' : '콩알금,돌선물,골드바,순금반지,다이아';
+  const kwSetting = String(s.popular_keywords || '');
+  // 주얼리몰인데 키워드가 예전 금 상품 기본값이면 주얼리 키워드로 대체
+  const keywords = String(J && (!kwSetting || /골드바|돌선물|콩알금|실버바/.test(kwSetting)) ? kwDefault : (kwSetting || kwDefault)).split(',').map((k) => k.trim()).filter(Boolean).slice(0, 8);
   const kwProducts = Object.fromEntries(keywords.map((k) => [k, db.prepare("SELECT * FROM products WHERE status='published' AND (name LIKE ? OR summary LIKE ?) ORDER BY sort, id LIMIT 4").all(`%${k}%`, `%${k}%`).filter(quotes.sellable)]));
 
   const byCode = Object.fromEntries(st.rows.map((r) => [r.code, r]));
@@ -78,7 +91,7 @@ router.get('/', (req, res) => {
   <div class="mb-dots">${banners.map((_, i) => `<button type="button" class="mb-dot${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${i + 1}번 배너"></button>`).join('')}</div>` : ''}
 </section>
 
-<section class="section intl-sec">
+${J ? '' : `<section class="section intl-sec">
   <div class="wrap">
     <div class="sec-head"><div><h2>국제 금·귀금속 시세</h2><p class="sub">USD/oz 기준 · 출처 TradingView</p></div></div>
     <div class="intl-grid">
@@ -118,8 +131,11 @@ router.get('/', (req, res) => {
   </div>
 </section>
 
+`}
 <section class="section quick-sec"><div class="wrap">
-  <div class="quick-menu">${QUICK.map(([k, label, ic]) => `<a class="qm" href="/products?category=${k}"><span class="qm-ic">${QM_ICON[ic] || ''}</span><b>${label}</b></a>`).join('')}</div>
+  <div class="quick-menu${J ? ' qm5' : ''}">${J
+    ? QUICK_J.map(([t, label, ic]) => `<a class="qm" href="/products?category=jewelry&t=${t}"><span class="qm-ic">${QM_ICON[ic] || ''}</span><b>${label}</b></a>`).join('')
+    : QUICK.map(([k, label, ic]) => `<a class="qm" href="/products?category=${k}"><span class="qm-ic">${QM_ICON[ic] || ''}</span><b>${label}</b></a>`).join('')}</div>
 </div></section>
 
 ${collection ? `<section class="section collection-sec"><div class="wrap">
@@ -130,8 +146,8 @@ ${collection ? `<section class="section collection-sec"><div class="wrap">
 
 <section class="section picks-sec"><div class="wrap">
   <div class="sec-head center"><h2>BEST / PICKS</h2></div>
-  <div class="pick-tabs" role="tablist">${PICK_TABS.map(([k, v], i) => `<button type="button" class="pick-tab${i === 0 ? ' on' : ''}" data-pick="${k}" role="tab" aria-selected="${i === 0}">${v}</button>`).join('')}</div>
-  ${PICK_TABS.map(([k], i) => `<div class="pgrid pick-pane${i === 0 ? ' on' : ''}" data-pane="${k}">${pickProducts(k, 8).map(productCard).join('') || '<p class="note">준비 중입니다.</p>'}</div>`).join('')}
+  <div class="pick-tabs" role="tablist">${(J ? PICK_TABS_J : PICK_TABS).map(([k, v], i) => `<button type="button" class="pick-tab${i === 0 ? ' on' : ''}" data-pick="${k}" role="tab" aria-selected="${i === 0}">${v}</button>`).join('')}</div>
+  ${(J ? PICK_TABS_J : PICK_TABS).map(([k], i) => `<div class="pgrid pick-pane${i === 0 ? ' on' : ''}" data-pane="${k}">${pickProducts(k, 8).map(productCard).join('') || '<p class="note">준비 중입니다.</p>'}</div>`).join('')}
 </div></section>
 
 <section class="section new-sec"><div class="wrap">
@@ -178,8 +194,8 @@ ${keywords.length ? `<section class="section kw-sec2"><div class="wrap">
 </div></section>`;
 
   res.send(page({
-    title: `문강금은 | 종로3가 금거래소·금은방 — 골드바·순금 주얼리·돌선물 온라인 구매`,
-    description: `종로3가 문강금은 공식 온라인몰. 골드바·실버바·순금 주얼리·돌선물·14K·18K 주얼리를 당일 시세 가격으로 구매하세요. 오늘 순금 24K 매입가 ${st.gold ? fmtNum(st.gold.buy) + '원/돈' : ''}, ${s.hours}.`,
+    title: J ? '문강금은 | 14K·18K 주얼리 — 반지·목걸이·팔찌·귀걸이·다이아 온라인몰' : `문강금은 | 종로3가 금거래소·금은방 — 골드바·순금 주얼리·돌선물 온라인 구매`,
+    description: J ? '종로3가 문강금은 14K·18K 주얼리 온라인몰. 반지·목걸이·팔찌·귀걸이와 모이사나이트·랩다이아 주얼리를 호수·길이 맞춤 제작으로 판매합니다. 매장 수령 가능.' : `종로3가 문강금은 공식 온라인몰. 골드바·실버바·순금 주얼리·돌선물·14K·18K 주얼리를 당일 시세 가격으로 구매하세요. 오늘 순금 24K 매입가 ${st.gold ? fmtNum(st.gold.buy) + '원/돈' : ''}, ${s.hours}.`,
     path: '/', body, bodyClass: 'home shop',
     extraHead: banners[0] ? `<link rel="preload" as="image" href="${attr(banners[0].image)}" media="(min-width:901px)"><link rel="preload" as="image" href="${attr(banners[0].image_m || banners[0].image)}" media="(max-width:900px)">` : '',
     jsonld: [faqLd(faqs)],

@@ -690,3 +690,7 @@ table.lineup .lu-na{color:var(--muted);font-size:14px}
   .rv-card{flex-basis:252px}
   .rv-nav{margin-top:14px}
 }
+
+/* 주얼리몰 퀵메뉴 5칸 (10-19) */
+.quick-menu.qm5{grid-template-columns:repeat(5,1fr)}
+@media (max-width:900px){.quick-menu.qm5{grid-template-columns:repeat(5,1fr);gap:6px}.quick-menu.qm5 .qm{padding:12px 4px}}

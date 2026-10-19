@@ -42,6 +42,7 @@ function postCard(p) {
 }
 // 상단 시세 바(모든 내부 페이지 공통) — AI/검색 크롤러가 어느 페이지에서든 당일 시세를 읽게 함
 function quoteBar() {
+  if (require('../lib/mode').isJewelry()) return '';
   const st = quotes.stats(); if (!st.gold) return '';
   const items = st.rows.map(r => `<a class="qb-item" data-code="${attr(r.code)}" href="/price/${r.metal}"><b>${esc(r.name)}</b><span>${fmtNum(r.buy)}</span>${chg(r.diff, r.pct)}</a>`).join('');
   return `<div class="quote-bar" aria-label="오늘의 시세 요약"><div class="wrap qb-inner"><span class="qb-label">오늘의 매입가 <small>원/돈 · ${esc(st.updatedText)}</small></span><div class="qb-track">${items}</div><a class="qb-more" href="/price">시세표 →</a></div></div>`;
@@ -117,16 +118,16 @@ router.get('/calculator', (req, res) => {
 
 // ── 제품 목록 ──
 router.get('/products', (req, res) => {
-  const cat = TAB_LABEL[req.query.category] ? req.query.category : ''; const q = String(req.query.q || '').trim().slice(0, 40);
+  const md = require('../lib/mode');
+  const cat = (TAB_LABEL[req.query.category] || req.query.category === 'new') ? req.query.category : ''; const q = String(req.query.q || '').trim().slice(0, 40);
   let sql = "SELECT * FROM products WHERE status='published'"; const args = [];
   if (cat === 'today') sql += ' AND ready_today=1';
   else if (cat === 'best') sql += ' AND featured=1';
+  else if (cat === 'new') sql += '';
   else if (cat) { sql += ' AND category=?'; args.push(cat); } if (q) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${q}%`, `%${q}%`); }
-  const TYPE_WORD = { necklace: '목걸이', earring: '귀걸이', bracelet: '팔찌', ring: '반지' };
-  const tWord = TYPE_WORD[req.query.t];
-  if (tWord) { sql += ' AND (name LIKE ? OR summary LIKE ?)'; args.push(`%${tWord}%`, `%${tWord}%`); }
-  sql += ' ORDER BY featured DESC, sort, id';
-  const rows = db.prepare(sql).all(...args).filter(quotes.sellable); const st = quotes.stats(); const site = settings.siteUrl();
+  const tKey = ['ring', 'necklace', 'bracelet', 'earring', 'diamond'].includes(req.query.t) ? req.query.t : '';
+  sql += cat === 'new' ? ' ORDER BY created_at DESC, id DESC' : ' ORDER BY featured DESC, sort, id';
+  const rows = db.prepare(sql).all(...args).filter(quotes.sellable).filter((p) => md.matchType(p, tKey)); const st = quotes.stats(); const site = settings.siteUrl();
   // 탭 개수도 실제로 보이는 상품 기준(가격 숨김 기준 반영)
   const visible = db.prepare("SELECT * FROM products WHERE status='published'").all().filter(quotes.sellable);
   const counts = {};
@@ -134,8 +135,10 @@ router.get('/products', (req, res) => {
   counts.today = visible.filter((v) => v.ready_today).length;
   counts.best = visible.filter((v) => v.featured).length;
   const body = `
-<section class="page-head"><div class="wrap"><p class="eyebrow">제품</p><h1>${cat ? tabLabel(cat) : '주얼리·골드바·실버바·순금 기념품'} <small>${rows.length}개</small></h1><p class="bluf">모든 제품 가격은 ${esc(st.updatedText)} 문강금은 고시 시세(순금 판매 ${st.gold && st.gold.sell ? fmtNum(st.gold.sell) + '원/돈' : ''})에 연동되어 자동 계산되며, 결제 시점 매장 고시가가 최종 적용됩니다. 실물 귀금속 구매 시 부가세 10%가 별도이며, 구매하신 제품은 되파실 때 당일 매입 시세로 다시 매입합니다.</p>
-<div class="tabs"><a class="tab${!cat ? ' active' : ''}" href="/products">전체</a>${Object.entries(TAB_LABEL).map(([k, v]) => `<a class="tab${cat === k ? ' active' : ''}" href="/products?category=${k}">${v} ${counts[k] || 0}</a>`).join('')}</div></div></section>
+<section class="page-head"><div class="wrap"><p class="eyebrow">제품</p><h1>${md.isJewelry() ? ((md.JEWELRY_CATS.find((c) => c.k === (tKey || cat)) || {}).label || '14K·18K 주얼리') : (cat ? tabLabel(cat) : '주얼리·골드바·실버바·순금 기념품')} <small>${rows.length}개</small></h1><p class="bluf">모든 제품 가격은 ${esc(st.updatedText)} 문강금은 고시 시세(순금 판매 ${st.gold && st.gold.sell ? fmtNum(st.gold.sell) + '원/돈' : ''})에 연동되어 자동 계산되며, 결제 시점 매장 고시가가 최종 적용됩니다. 실물 귀금속 구매 시 부가세 10%가 별도이며, 구매하신 제품은 되파실 때 당일 매입 시세로 다시 매입합니다.</p>
+<div class="tabs"><a class="tab${!cat && !tKey ? ' active' : ''}" href="/products">전체${md.isJewelry() ? ' ' + visible.length : ''}</a>${md.isJewelry()
+  ? md.JEWELRY_CATS.map((c) => { const key = c.k; const n = key === 'best' ? counts.best : key === 'new' ? visible.length : visible.filter((p) => md.matchType(p, key)).length; const on = (tKey || cat) === key; return `<a class="tab${on ? ' active' : ''}" href="${c.href}">${c.label} ${n}</a>`; }).join('')
+  : Object.entries(TAB_LABEL).map(([k, v]) => `<a class="tab${cat === k ? ' active' : ''}" href="/products?category=${k}">${v} ${counts[k] || 0}</a>`).join('')}</div></div></section>
 <section class="section"><div class="wrap">
   <div class="market-controls"><input type="search" id="pFilter" placeholder="제품명 검색" aria-label="제품 검색" value="${attr(q)}"><select id="pSort" aria-label="정렬"><option value="featured">추천순</option><option value="price-asc">가격 낮은순</option><option value="price-desc">가격 높은순</option><option value="weight">중량순</option></select></div>
   <div class="pgrid" id="pGrid">${rows.map(productCard).join('') || '<p class="note">등록된 제품이 없습니다.</p>'}</div>

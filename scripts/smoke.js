@@ -6,7 +6,7 @@ process.env.DATA_DIR = process.env.DATA_DIR || require('path').join(__dirname, '
 process.env.JWT_SECRET = 'smoke-secret';
 require('fs').rmSync(process.env.DATA_DIR, { recursive: true, force: true });
 require('../server');
-const { db } = require('../db');
+const { db, setSetting } = require('../db');
 const BASE = `http://127.0.0.1:${process.env.PORT}`;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let fails = 0; const ok = (c, msg, extra = '') => { console.log(`${c ? '✔' : '✘'} ${msg}${extra ? ' — ' + extra : ''}`); if (!c) fails++; };
@@ -28,6 +28,11 @@ let fails = 0; const ok = (c, msg, extra = '') => { console.log(`${c ? '✔' : '
   const n = pages.filter(p => !p.includes('?')).length;
   ok(titles.size === n, 'title 전 페이지 고유', `${titles.size}/${n}`);
   ok(descs.size === n, 'description 전 페이지 고유', `${descs.size}/${n}`);
+  // 판매 모드: 전체 기능 검사는 금 몰 모드로, 주얼리몰 모드는 아래에서 따로 확인
+  setSetting('shop_mode', 'gold');
+  { const jm = await (async () => { setSetting('shop_mode', 'jewelry'); const h = await get('/'); const g = await get('/products/goldbar-1g'); setSetting('shop_mode', 'gold'); return { h, g }; })();
+    ok(jm.h.status === 200 && !jm.h.text.includes('lineup-sec') && jm.h.text.includes('t=ring'), '주얼리몰 모드: 시세 영역 숨김·종류별 카테고리');
+    ok(jm.g.status === 404, '주얼리몰 모드: 골드바 상품 숨김'); }
   let r = await get('/'); ok(r.text.includes('"JewelryStore"') && r.text.includes('"FAQPage"') && r.text.includes('name="keywords"') && r.text.includes('mainbanner') && r.text.includes('lineup') && r.text.includes('side-cta'), '홈: JewelryStore·FAQPage·keywords·배너·시세 라인업');
   ok(r.text.includes('open.kakao.com/o/pZJxBomi') && r.text.includes('010-5005-8636') && r.text.includes('href="/cart"'), '홈: 카카오톡 상담·장바구니 버튼');
   ok(r.text.includes('map.naver.com') && r.text.includes('blog.naver.com/lallapaloza') && r.text.includes('youtube.com/@munkanggold') && r.text.includes('instagram.com/munkanggold'), '홈: 네이버플레이스·블로그·유튜브·인스타 링크');
