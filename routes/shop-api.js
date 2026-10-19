@@ -51,7 +51,20 @@ router.post('/checkout', (req, res) => {
     if (!b.agree) return fail(res, '주문 내용에 동의해 주세요.');
     if (!String(b.buyer_name || '').trim() || !String(b.buyer_phone || '').trim()) return fail(res, '주문자 이름과 연락처를 입력해 주세요.');
     if (b.receive_method !== 'pickup' && !String(b.addr1 || '').trim()) return fail(res, '배송 주소를 입력해 주세요.');
+    if (b.pay_method === 'card') {
+      const toss = require('../lib/toss');
+      if (!toss.enabled()) return fail(res, '카드 결제를 준비 중입니다. 무통장 입금을 선택해 주세요.');
+      const items = cart.list(req, res); const m = member.current(req);
+      const t = cart.totals(items, { couponCode: b.coupon_code, pointUse: m ? Math.min(Number(b.point_use) || 0, m.points) : 0, receiveMethod: b.receive_method });
+      if (t.total > toss.cardMax()) return fail(res, `카드 결제는 1회 ${toss.cardMax().toLocaleString('ko-KR')}원까지 가능합니다. 무통장 입금을 선택하시거나 매장으로 문의해 주세요.`);
+      if (t.total < 100) return fail(res, '결제 금액을 확인해 주세요.');
+    }
     const order = cart.createOrder(req, res, b);
+    if (order.pay_method === 'card') {
+      const items = cart.orderItems(order.id);
+      const orderName = items.length ? (items[0].name + (items.length > 1 ? ` 외 ${items.length - 1}건` : '')).slice(0, 100) : '문강금은 주문';
+      return ok(res, { order_no: order.order_no, total: order.total, pay: { orderId: order.order_no, amount: order.total, orderName, customerName: order.buyer_name, customerEmail: order.buyer_email || undefined } });
+    }
     ok(res, { order_no: order.order_no, total: order.total, redirect: `/order/${order.order_no}` });
   } catch (e) { fail(res, e.message); }
 });

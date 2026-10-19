@@ -449,8 +449,10 @@ ${d.rows.map(m => `<tr>
     <label>적립률(%) <input name="point_rate_pct" type="number" step="0.1" value="${esc(s.point_rate_pct)}"></label></div>
     <label>입금 계좌 안내 <textarea name="bank_info" style="min-height:70px" placeholder="예: 국민은행 123456-78-901234 (예금주 문강금은)">${esc(s.bank_info)}</textarea></label>
     <label>메인 인기 키워드 (쉼표로 구분) <input name="popular_keywords" value="${esc(s.popular_keywords)}"></label>
-    <div class="row"><label>토스페이먼츠 클라이언트 키 <input name="pg_client_key" value="${esc(s.pg_client_key)}" placeholder="입력하면 카드결제가 열립니다"></label>
-      <label>시크릿 키 <input name="pg_secret_key" value="${esc(s.pg_secret_key)}" type="password"></label></div>
+    <div class="row3"><label>토스페이먼츠 클라이언트 키 <input name="pg_client_key" value="${esc(s.pg_client_key)}" placeholder="live_gck_… / test_gck_…"></label>
+      <label>시크릿 키 <input name="pg_secret_key" value="${esc(s.pg_secret_key)}" type="password" placeholder="live_gsk_… / test_gsk_…"></label>
+      <label>카드 1회 한도(원) <input name="card_max_amount" type="number" value="${esc(s.card_max_amount)}"></label></div>
+    <p class="small muted">두 키를 모두 넣으면 주문서에 카드 결제가 열립니다. test_로 시작하는 키는 테스트 모드라 실제 결제가 되지 않고 주문도 완료되지 않습니다. 시크릿 키는 서버에만 저장되며 홈페이지에 노출되지 않습니다.</p>
     <button class="btn primary">저장</button></form></div>
 
 <div class="card"><div class="toolbar"><h3 style="margin:0">메인 배너</h3><span class="sp"></span><button class="btn sm gold" id="addBanner">+ 배너 추가</button></div>

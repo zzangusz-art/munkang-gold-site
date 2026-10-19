@@ -32,12 +32,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com', 'https://www.youtube.com', 'https://wcs.naver.net'],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.googletagmanager.com', 'https://www.youtube.com', 'https://wcs.naver.net', 'https://js.tosspayments.com', 'https://*.tosspayments.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
       fontSrc: ["'self'", 'https://cdn.jsdelivr.net', 'data:'],
-      imgSrc: ["'self'", 'data:', 'https://i.ytimg.com', 'https://www.google-analytics.com', 'https://*.googleusercontent.com'],
-      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://maps.google.com', 'https://s.tradingview.com', 'https://www.tradingview-widget.com'],
-      connectSrc: ["'self'", 'https://www.google-analytics.com', 'https://region1.google-analytics.com', 'https://wcs.naver.net'],
+      imgSrc: ["'self'", 'data:', 'https://*.tosspayments.com', 'https://*.toss.im', 'https://i.ytimg.com', 'https://www.google-analytics.com', 'https://*.googleusercontent.com'],
+      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://maps.google.com', 'https://s.tradingview.com', 'https://www.tradingview-widget.com', 'https://*.tosspayments.com', 'https://toss.im', 'https://*.toss.im'],
+      connectSrc: ["'self'", 'https://www.google-analytics.com', 'https://region1.google-analytics.com', 'https://wcs.naver.net', 'https://*.tosspayments.com', 'https://toss.im', 'https://*.toss.im'],
       scriptSrcAttr: null,
       objectSrc: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"], upgradeInsecureRequests: null,
     },
@@ -103,6 +103,7 @@ app.get(['/admin', '/admin/*'], (req, res) => {
 app.use(require('./routes/pages-home').router);
 app.use(require('./routes/shop').router);
 app.use(require('./routes/pages-main').router);
+app.use(require('./routes/pages-policy').router);   // 이용약관·교환/환불/배송·개인정보(심사 필수)
 app.use(require('./routes/pages-info').router);
 app.use(require('./routes/pages-content').router);
 

@@ -10,6 +10,7 @@ const member = require('../lib/member');
 const { productCard } = require('../lib/cards');
 const { CAT_LABEL } = require('../lib/content/templates');
 const { esc, attr, fmtNum, now, isoFromTs, fmtKoDate, kstDate } = require('../lib/util');
+const toss = require('../lib/toss');
 
 const router = express.Router();
 const ctx = (req, res) => ({ me: member.current(req), cartCount: cart.count(req, res) });
@@ -62,6 +63,11 @@ router.get('/products/:slug', (req, res, next) => {
   <h2>고객 리뷰 <small>${reviews.length}건</small></h2>
   ${reviews.length ? `<ul class="rv-list">${reviews.map((r) => `<li><span class="stars">${'★'.repeat(r.rating)}</span><b>${esc(r.name)}</b><time>${dateOf(r.created_at)}</time><p>${esc(r.text)}</p>${(() => { try { return (JSON.parse(r.photos || '[]') || []).map((u) => `<img src="${attr(u)}" alt="" loading="lazy">`).join(''); } catch (_) { return ''; } })()}</li>`).join('')}</ul>`
     : '<p class="note">아직 등록된 리뷰가 없습니다. 구매하신 회원만 리뷰를 작성하실 수 있습니다.</p>'}
+</div></section>
+
+<section class="section pd-policy"><div class="wrap narrow">
+  <details class="faq-item"><summary>배송 안내</summary><div class="faq-a">결제 확인 후 영업일 1~3일 안에 발송합니다(주문 제작 상품은 평일 7~9일). 배송비 ${fmtNum(cart.shippingFeeDefault())}원, ${fmtNum(cart.freeShipOver())}원 이상 무료이며 매장 수령도 가능합니다.</div></details>
+  <details class="faq-item"><summary>교환·반품·환불 안내</summary><div class="faq-a">상품을 받은 날부터 7일 이내 교환·반품을 신청할 수 있습니다. 착용·훼손으로 가치가 줄었거나, 사전 동의를 받은 주문 제작 상품은 제한됩니다. 단순 변심 반품은 왕복 배송비가 고객 부담이며, 반품 확인 후 3영업일 안에 환불합니다. <a href="/policy">자세히 보기</a></div></details>
 </div></section>
 
 <section class="section pd-detail"><div class="wrap narrow">
@@ -140,9 +146,10 @@ router.get('/checkout', (req, res) => {
       <label>적립금 사용 <input name="point_use" type="number" min="0" step="10" value="0" ${m ? '' : 'disabled placeholder="회원 전용"'}></label></div>
     ${m ? `<p class="note">보유 적립금 ${fmtNum(m.points)}원</p>` : '<p class="note"><a href="/login?next=/checkout">로그인</a>하시면 적립금·쿠폰을 사용하고 주문 내역을 조회할 수 있습니다.</p>'}
     <h2>결제 수단</h2>
-    <div class="radio-row"><label><input type="radio" name="pay_method" value="bank" checked> 무통장 입금</label><label><input type="radio" name="pay_method" value="card"${getSetting('pg_client_key') ? '' : ' disabled'}> 카드 결제${getSetting('pg_client_key') ? '' : ' (준비 중)'}</label></div>
+    <div class="radio-row"><label><input type="radio" name="pay_method" value="bank" checked> 무통장 입금</label><label><input type="radio" name="pay_method" value="card"${toss.enabled() ? '' : ' disabled'}> 신용·체크카드${toss.enabled() ? (toss.isTest() ? ' (테스트 모드)' : '') : ' (준비 중)'}</label></div>
+    ${toss.enabled() ? `<div id="tossBox" hidden data-client-key="${attr(toss.clientKey())}" data-customer-key="${attr(c.me ? 'mk-member-' + require('crypto').createHash('sha256').update(String(c.me.id) + (process.env.JWT_SECRET || '')).digest('hex').slice(0, 24) : 'ANONYMOUS')}" data-card-max="${toss.cardMax()}"><div id="payment-method"></div><div id="agreement"></div><p class="note">카드 결제는 1회 ${fmtNum(toss.cardMax())}원까지 가능합니다.</p></div>` : ''}
     <p class="note" id="bankNote">${esc(settings.cfg('bank_info') || '입금 계좌는 주문 완료 후 안내드립니다.')}</p>
-    <label class="agree"><input type="checkbox" name="agree" required> <a href="/privacy" target="_blank">개인정보 수집·이용</a> 및 주문 내용에 동의합니다.</label>
+    <label class="agree"><input type="checkbox" name="agree" required> 주문 내용을 확인했으며 <a href="/terms" target="_blank">이용약관</a>, <a href="/privacy" target="_blank">개인정보 수집·이용</a>, <a href="/policy" target="_blank">교환·환불 안내</a>에 동의합니다.</label>
     <button class="btn btn-gold block lg" type="submit">결제하기</button>
     <p class="form-msg" aria-live="polite"></p>
   </form>
@@ -153,6 +160,43 @@ router.get('/checkout', (req, res) => {
   </aside>
 </div></section>`;
   res.send(page({ title: '주문서 작성', description: '문강금은 온라인몰 주문서', path: '/checkout', body, bodyClass: 'shop', noindex: true, ...c }));
+});
+
+// ── 카드 결제 결과(토스페이먼츠 successUrl / failUrl) ──
+router.get('/pay/success', async (req, res, next) => {
+  const { paymentKey, orderId, amount } = req.query;
+  const o = cart.findOrder(orderId);
+  const c = ctx(req, res);
+  const failPage = (msg) => res.status(400).send(page({ title: '결제 확인 실패', description: '결제를 완료하지 못했습니다.', path: '/pay/success', noindex: true, bodyClass: 'shop', ...c,
+    body: `<section class="page-head"><div class="wrap"><h1>결제를 완료하지 못했습니다</h1><p class="bluf">${esc(msg)}</p></div></section><section class="section"><div class="wrap narrow center"><a class="btn btn-gold" href="/cart">장바구니로 돌아가기</a> <a class="btn btn-ghost" href="/cs">고객센터</a></div></section>` }));
+  if (!o || !paymentKey) return failPage('주문 정보를 찾을 수 없습니다.');
+  if (o.status === 'paid' && o.pay_key === paymentKey) return res.redirect(`/order/${o.order_no}`);   // 새로고침 대비
+  if (o.status !== 'pending' || o.pay_method !== 'card') return failPage('이미 처리된 주문입니다.');
+  if (Number(amount) !== Number(o.total)) { cart.cancelUnpaid(o, '금액 불일치'); return failPage('결제 금액이 주문 금액과 달라 결제를 진행하지 않았습니다.'); }
+  try {
+    const r = await toss.confirm({ paymentKey, orderId: o.order_no, amount: o.total });
+    if (!r.ok) { cart.cancelUnpaid(o, r.data.code || '승인 실패'); return failPage(r.data.message || '카드 승인에 실패했습니다.'); }
+    if (toss.isTest()) {
+      // 테스트 키(심사·연동 확인용)는 실제 돈이 오가지 않으므로 결제 완료로 처리하지 않는다
+      db.prepare("UPDATE orders SET status='cancel', pay_key=?, memo=TRIM(IFNULL(memo,'') || ' [테스트 결제 — 실제 결제 아님]'), updated_at=? WHERE id=?").run(paymentKey, now(), o.id);
+      if (o.coupon_code) db.prepare('UPDATE coupons SET used_count=MAX(0, used_count-1) WHERE code=?').run(o.coupon_code);
+      if (o.member_id && o.point_used) require('../lib/member').addPoints(o.member_id, o.point_used, '테스트 결제 환원', o.order_no);
+      cart.clear(req, res);
+      return res.redirect(`/order/${o.order_no}?test=1`);
+    }
+    cart.markPaid(o, { payKey: paymentKey });
+    cart.clear(req, res);
+    return res.redirect(`/order/${o.order_no}`);
+  } catch (e) {
+    return failPage('결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+});
+router.get('/pay/fail', (req, res) => {
+  const o = cart.findOrder(req.query.orderId);
+  if (o) cart.cancelUnpaid(o, req.query.code || '결제 취소');
+  const c = ctx(req, res);
+  res.send(page({ title: '결제 취소', description: '결제가 취소되었습니다.', path: '/pay/fail', noindex: true, bodyClass: 'shop', ...c,
+    body: `<section class="page-head"><div class="wrap"><h1>결제가 완료되지 않았습니다</h1><p class="bluf">${esc(req.query.message || '결제를 취소했거나 오류가 발생했습니다.')} 장바구니는 그대로 남아 있습니다.</p></div></section><section class="section"><div class="wrap narrow center"><a class="btn btn-gold" href="/checkout">다시 주문하기</a> <a class="btn btn-ghost" href="/cart">장바구니</a></div></section>` }));
 });
 
 // ── 주문 완료 ──
@@ -167,6 +211,8 @@ router.get('/order/:no', (req, res, next) => {
   <dl class="order-sum"><dt>상품 금액</dt><dd>${money(o.items_total)}</dd><dt>배송비</dt><dd>${o.shipping_fee ? money(o.shipping_fee) : '무료'}</dd>
     ${o.coupon_discount ? `<dt>쿠폰 할인</dt><dd>-${money(o.coupon_discount)}</dd>` : ''}${o.point_used ? `<dt>적립금 사용</dt><dd>-${money(o.point_used)}</dd>` : ''}
     <dt><b>결제 금액</b></dt><dd><b>${money(o.total)}</b></dd></dl>
+  ${o.pay_method === 'card' && /테스트 결제/.test(o.memo || '') ? '<div class="bank-box"><h2>테스트 결제가 완료되었습니다</h2><p>현재 결제 시스템이 테스트 모드라 실제로 돈이 결제되지 않았고, 주문도 접수되지 않았습니다. 상품을 구매하시려면 무통장 입금으로 주문하시거나 고객센터로 연락해 주세요.</p></div>' : ''}
+  ${o.pay_method === 'card' && o.status === 'paid' ? '<div class="bank-box"><h2>카드 결제 완료</h2><p>결제가 정상적으로 승인되었습니다. 상품 준비가 시작되면 알려드립니다.</p></div>' : ''}
   ${o.pay_method === 'bank' ? `<div class="bank-box"><h2>입금 안내</h2><p>${esc(settings.cfg('bank_info') || '입금 계좌는 전화로 안내드립니다.')}</p><p class="note">입금자명과 주문자명이 다르면 요청 사항에 남겨 주세요. 입금 확인 후 상품을 준비합니다.</p></div>` : ''}
   <p class="center"><a class="btn btn-ghost" href="/order-lookup">주문조회</a> <a class="btn btn-gold" href="/products">쇼핑 계속하기</a></p>
 </div></section>`;

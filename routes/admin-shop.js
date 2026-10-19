@@ -168,7 +168,7 @@ router.post('/home-faq', (req, res) => {
 });
 
 // ── 쇼핑 설정 ──
-const SHOP_KEYS = ['shipping_fee', 'free_ship_over', 'point_rate_pct', 'bank_info', 'popular_keywords', 'pg_client_key', 'pg_secret_key'];
+const SHOP_KEYS = ['card_max_amount', 'shipping_fee', 'free_ship_over', 'point_rate_pct', 'bank_info', 'popular_keywords', 'pg_client_key', 'pg_secret_key'];
 router.get('/shop-settings', (req, res) => {
   const { getSetting } = require('../db');
   const settings = require('../lib/settings');

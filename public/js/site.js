@@ -376,11 +376,13 @@
             (t.point ? '<dt>적립금 사용</dt><dd>-' + won(t.point) + '</dd>' : '') +
             (t.earn ? '<dt>적립 예정</dt><dd>' + won(t.earn) + '</dd>' : '');
           totalBox.textContent = won(t.total);
+          if (window.__toss) window.__toss.amount(t.total);
           if (t.couponMsg && f.get('coupon_code')) msg(co.querySelector('.form-msg'), t.couponMsg, true);
         }).catch(function () {});
     };
     co.addEventListener('change', function (e) {
       if (e.target.name === 'receive_method') addrBox.style.display = e.target.value === 'pickup' ? 'none' : '';
+      if (e.target.name === 'pay_method' && window.__tossToggle) window.__tossToggle(e.target.value === 'card');
       quote();
     });
     co.addEventListener('input', function (e) { if (e.target.name === 'point_use' || e.target.name === 'coupon_code') quote(); });
@@ -389,7 +391,7 @@
       e.preventDefault();
       var btn = co.querySelector('button[type=submit]'); btn.disabled = true;
       var o = {}; new FormData(co).forEach(function (v, k) { o[k] = v; }); o.agree = !!co.agree.checked;
-      api('/checkout', o).then(function (r) { location.href = r.redirect; })
+      api('/checkout', o).then(function (r) { if (r.pay && window.__toss) return window.__toss.pay(r.pay).catch(function (err) { msg(co.querySelector('.form-msg'), err.message || '결제를 시작하지 못했습니다.', true); btn.disabled = false; }); location.href = r.redirect; })
         .catch(function (err) { msg(co.querySelector('.form-msg'), err.message, true); btn.disabled = false; });
     });
   }
@@ -444,4 +446,61 @@
   box.addEventListener('touchend', function () { strip.style.transition = ''; x0 = null; play(); });
   window.addEventListener('resize', function () { move(Math.min(pos, max())); });
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) play();
+})();
+
+// ===== 토스페이먼츠 결제위젯 V2 (주문서) =====
+(function () {
+  var box = document.getElementById('tossBox');
+  if (!box) return;
+  var widgets = null, ready = null, lastAmount = 0;
+  var loadSdk = function () {
+    return new Promise(function (resolve, reject) {
+      if (window.TossPayments) return resolve();
+      var sc = document.createElement('script');
+      sc.src = 'https://js.tosspayments.com/v2/standard';
+      sc.onload = resolve; sc.onerror = function () { reject(new Error('결제 모듈을 불러오지 못했습니다.')); };
+      document.head.appendChild(sc);
+    });
+  };
+  var currentTotal = function () {
+    var t = document.getElementById('coTotal');
+    return Number(String(t ? t.textContent : '0').replace(/[^0-9]/g, '')) || 0;
+  };
+  var init = function () {
+    if (ready) return ready;
+    ready = loadSdk().then(function () {
+      var tp = window.TossPayments(box.dataset.clientKey);
+      widgets = tp.widgets({ customerKey: box.dataset.customerKey || window.TossPayments.ANONYMOUS });
+      lastAmount = Math.max(100, currentTotal());
+      return widgets.setAmount({ currency: 'KRW', value: lastAmount });
+    }).then(function () {
+      return Promise.all([
+        widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
+        widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' }),
+      ]);
+    });
+    return ready;
+  };
+  window.__tossToggle = function (on) {
+    box.hidden = !on;
+    var note = document.getElementById('bankNote'); if (note) note.hidden = on;
+    if (on) init().catch(function (e) { box.insertAdjacentHTML('beforeend', '<p class="form-msg bad">' + e.message + '</p>'); });
+  };
+  window.__toss = {
+    amount: function (v) {
+      if (!widgets || !v || v === lastAmount) return;
+      lastAmount = v; widgets.setAmount({ currency: 'KRW', value: v });
+    },
+    pay: function (p) {
+      return init().then(function () {
+        return widgets.setAmount({ currency: 'KRW', value: p.amount });
+      }).then(function () {
+        return widgets.requestPayment({
+          orderId: p.orderId, orderName: p.orderName,
+          successUrl: location.origin + '/pay/success', failUrl: location.origin + '/pay/fail',
+          customerName: p.customerName, customerEmail: p.customerEmail,
+        });
+      });
+    },
+  };
 })();
